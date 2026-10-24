@@ -1,0 +1,775 @@
+<title>Earth Engine for Beginners</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;600&family=Schibsted+Grotesk:wght@600;800&display=swap">
+<style>
+/* Layout: a syllabus sidebar beside a lesson reader. The reader shows one script with
+   line numbers and colour-coded code (ee.* server calls in red). One column under 900px. */
+:root {
+  --bg: #f3f5f2;
+  --surface: #ffffff;
+  --sunken: #e9eee9;
+  --ink: #15201a;
+  --muted: #55625b;
+  --line: #d4dbd4;
+  --accent: #0b6a4a;
+  --accent-ink: #ffffff;
+  --accent-soft: #d8ece1;
+  --server: #b03a1d;
+  --c-comment: #2a6651;
+  --c-string: #865000;
+  --c-number: #6b3ea6;
+  --c-keyword: #1c4e9b;
+  --c-global: #8a2f6e;
+  --part-bg: #e2ede6;
+  --shadow: 0 1px 2px rgba(20, 40, 30, .06), 0 6px 20px rgba(20, 40, 30, .06);
+  --ndvi: linear-gradient(90deg, #a50026, #f46d43, #fee08b, #d9ef8b, #66bd63, #006837);
+
+  --font-display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --step--1: .8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.4375rem;
+  --step-3: 2rem;
+  --step-4: clamp(2.25rem, 1.55rem + 2.6vw, 3.25rem);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1311; --surface: #141b18; --sunken: #19221e; --ink: #e3eae5; --muted: #9ba9a1;
+    --line: #2a3530; --accent: #5ec79b; --accent-ink: #062016; --accent-soft: #183428;
+    --server: #ff8f70; --c-comment: #8cc4ab; --c-string: #e3b866; --c-number: #c8a8f3;
+    --c-keyword: #92b5ff; --c-global: #f09ad2; --part-bg: #182a21;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1311; --surface: #141b18; --sunken: #19221e; --ink: #e3eae5; --muted: #9ba9a1;
+  --line: #2a3530; --accent: #5ec79b; --accent-ink: #062016; --accent-soft: #183428;
+  --server: #ff8f70; --c-comment: #8cc4ab; --c-string: #e3b866; --c-number: #c8a8f3;
+  --c-keyword: #92b5ff; --c-global: #f09ad2; --part-bg: #182a21;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 6px 20px rgba(0, 0, 0, .3);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 10; background: var(--bg);
+}
+a { color: var(--accent); text-underline-offset: .15em; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+p { margin: 0; max-width: 68ch; }
+h1, h2, h3, h4 { font-family: var(--font-display); line-height: 1.15; margin: 0; text-wrap: balance; }
+h1 { font-size: var(--step-4); font-weight: 800; letter-spacing: -.02em; }
+h2 { font-size: var(--step-3); font-weight: 800; letter-spacing: -.015em; }
+h3 { font-size: var(--step-2); font-weight: 600; letter-spacing: -.005em; }
+code, kbd { font-family: var(--font-mono); font-size: .9em; }
+kbd { border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 .35em; background: var(--surface); }
+.eyebrow {
+  font: 600 var(--step--1)/1.2 var(--font-display); letter-spacing: .08em;
+  text-transform: uppercase; color: var(--accent);
+}
+.muted { color: var(--muted); }
+
+.ndvi-bar { height: 4px; background: var(--ndvi); }
+
+.shell {
+  max-width: 1360px; margin: 0 auto;
+  display: grid; grid-template-columns: 268px minmax(0, 1fr); gap: 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 72px;
+}
+
+/* ---------- Sidebar ---------- */
+.nav {
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); align-self: start;
+  max-height: calc(100vh - 32px - env(safe-area-inset-top, 0px)); overflow-y: auto;
+  padding-right: 4px;
+}
+.brand { display: flex; flex-direction: column; gap: 2px; text-decoration: none; color: var(--ink); padding: 4px 8px 12px; }
+.brand strong { font: 800 1.125rem/1.2 var(--font-display); letter-spacing: -.01em; }
+.brand span { font: 400 var(--step--1)/1.3 var(--font-mono); color: var(--muted); }
+.nav summary {
+  list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+  font: 600 1rem/1 var(--font-display); padding: 12px 14px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--surface);
+}
+.nav summary::-webkit-details-marker { display: none; }
+.nav summary::after { content: "▾"; color: var(--muted); }
+.nav details[open] summary::after { content: "▴"; }
+.nav-group { display: flex; flex-direction: column; gap: 2px; }
+.nav-group + .nav-group { margin-top: 16px; }
+.nav-group h4 {
+  font: 600 .75rem/1.3 var(--font-display); text-transform: uppercase; letter-spacing: .09em;
+  color: var(--muted); padding: 0 8px 4px;
+}
+.nav-link {
+  display: grid; grid-template-columns: 2.1em minmax(0, 1fr) 1em; gap: 6px; align-items: baseline;
+  padding: 6px 8px; border-radius: 6px; color: var(--ink); text-decoration: none;
+  font-size: .9375rem; line-height: 1.35;
+}
+.nav-link .num { font: 400 .8125rem/1 var(--font-mono); color: var(--muted); }
+.nav-link .tick { color: var(--accent); font-weight: 700; visibility: hidden; }
+.nav-link.is-done .tick { visibility: visible; }
+.nav-link:hover { background: var(--sunken); }
+.nav-link[aria-current="page"] { background: var(--accent-soft); font-weight: 700; }
+
+/* ---------- Views ---------- */
+main { min-width: 0; }
+.view { display: flex; flex-direction: column; gap: 44px; }
+
+.hero { display: flex; flex-direction: column; gap: 18px; padding-top: 8px; }
+.lede { font-size: var(--step-1); line-height: 1.55; max-width: 60ch; }
+.facts {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px;
+  background: var(--line); border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  margin: 6px 0 0; max-width: 820px;
+}
+.facts div { background: var(--surface); padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.facts dt { font: 600 .75rem/1.2 var(--font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.facts dd { margin: 0; font: 800 1.375rem/1.2 var(--font-display); font-variant-numeric: tabular-nums; }
+.facts dd.place { font-size: 1.0625rem; }
+.facts .coords { display: block; font: 400 .8125rem/1.4 var(--font-mono); color: var(--muted); margin-top: 2px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; font: 700 .9375rem/1 var(--font-body);
+  padding: 10px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+
+.section { display: flex; flex-direction: column; gap: 16px; }
+.section > p { color: var(--muted); }
+
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); counter-reset: step; }
+.steps li {
+  counter-increment: step; background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 6px;
+}
+.steps li::before {
+  content: "Step " counter(step); font: 600 .75rem/1 var(--font-display); text-transform: uppercase;
+  letter-spacing: .08em; color: var(--accent);
+}
+
+.legend { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.legend li { display: flex; gap: 10px; align-items: baseline; }
+.legend li code { min-width: 6.5em; font-weight: 600; }
+
+/* Syllabus */
+.module { display: grid; grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 20px 32px; padding-top: 20px; border-top: 1px solid var(--line); }
+.module-head { display: flex; flex-direction: column; gap: 6px; }
+.module-head p:last-child { color: var(--muted); font-size: .9375rem; }
+.lessons { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.lesson {
+  display: grid; grid-template-columns: 2.6em minmax(0, 1fr) auto; gap: 4px 14px; align-items: start;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+  color: var(--ink); text-decoration: none;
+}
+.lesson:hover { border-color: var(--accent); box-shadow: var(--shadow); }
+.lesson .num { font: 600 1rem/1.4 var(--font-mono); color: var(--accent); }
+.lesson .t { font-weight: 700; display: block; }
+.lesson .s { color: var(--muted); font-size: .9375rem; display: block; margin-top: 2px; }
+.lesson .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font: 400 .75rem/1.2 var(--font-mono); color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pill {
+  font: 700 .6875rem/1 var(--font-body); text-transform: uppercase; letter-spacing: .06em;
+  padding: 4px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent);
+}
+.pill[hidden] { display: none; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: .9375rem; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font: 600 .875rem/1.3 var(--font-display); background: var(--sunken); }
+td code { font-size: .8125rem; }
+td:first-child { white-space: nowrap; }
+
+/* ---------- Script reader ---------- */
+.toolbar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg);
+  display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between;
+  padding-block: 12px; border-bottom: 1px solid var(--line);
+}
+.crumb { font: 600 var(--step--1)/1.2 var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.tools { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: .9375rem; padding: 8px 10px; border-radius: 8px; cursor: pointer; user-select: none; }
+.toggle:hover { background: var(--sunken); }
+.toggle input { width: 1.05em; height: 1.05em; accent-color: var(--accent); margin: 0; }
+
+.fallback { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; border: 1px solid var(--server); border-radius: 10px; background: var(--surface); }
+.fallback textarea { width: 100%; font: .8125rem/1.5 var(--font-mono); background: var(--sunken); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 8px; }
+
+.script-head { display: flex; flex-direction: column; gap: 14px; }
+.script-head .summary { font-size: var(--step-1); max-width: 62ch; }
+.learn { display: flex; flex-direction: column; gap: 6px; }
+.learn h3, .parts .label { font: 600 .75rem/1.2 var(--font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.learn ul { margin: 0; padding-left: 1.2em; display: grid; gap: 2px 28px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.learn li::marker { color: var(--accent); }
+.parts { display: flex; flex-direction: column; gap: 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  font: 400 .8125rem/1.3 var(--font-body); border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); padding: 5px 10px; border-radius: 999px; cursor: pointer; text-align: left;
+}
+.chip b { font-family: var(--font-mono); font-weight: 600; color: var(--accent); margin-right: 4px; }
+.chip:hover { border-color: var(--accent); }
+
+.code-panel { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+.code-panel figcaption {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; padding: 10px 16px;
+  font: 400 .8125rem/1.3 var(--font-mono); color: var(--muted); background: var(--sunken); border-bottom: 1px solid var(--line);
+}
+.code-panel figcaption strong { color: var(--ink); font-weight: 600; overflow-wrap: anywhere; }
+pre.code { margin: 0; padding: 12px 0 16px; overflow-x: auto; font: .84375rem/1.7 var(--font-mono); tab-size: 2; }
+pre.code code { font-size: inherit; display: block; min-width: max-content; }
+pre.code.wrap code { min-width: 0; }
+.ln { display: grid; grid-template-columns: 4.5ch max-content; column-gap: 2ch; padding-right: 24px; scroll-margin-top: 96px; }
+.ln::before { content: attr(data-n); text-align: right; color: var(--muted); opacity: .75; user-select: none; -webkit-user-select: none; }
+.lc { white-space: pre; }
+pre.code.wrap .ln { grid-template-columns: 4.5ch minmax(0, 1fr); }
+pre.code.wrap .lc { white-space: pre-wrap; overflow-wrap: anywhere; }
+.ln.part { background: var(--part-bg); }
+.ln.part .t-c { color: var(--ink); font-weight: 600; }
+.ln.flash { animation: flash 1.4s ease-out; }
+@keyframes flash { from { background: var(--accent-soft); } to { background: var(--part-bg); } }
+.t-c { color: var(--c-comment); }
+.t-s { color: var(--c-string); }
+.t-n { color: var(--c-number); }
+.t-k { color: var(--c-keyword); font-weight: 600; }
+.t-ee { color: var(--server); font-weight: 600; }
+.t-g { color: var(--c-global); font-weight: 600; }
+.sample pre.code { padding: 12px 0; }
+
+.pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pager a {
+  display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border: 1px solid var(--line);
+  border-radius: 10px; background: var(--surface); color: var(--ink); text-decoration: none; min-width: 0;
+}
+.pager a:hover { border-color: var(--accent); }
+.pager a.next { text-align: right; grid-column: 2; }
+.pager small { font: 600 .75rem/1.2 var(--font-display); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.pager span { font-weight: 700; overflow-wrap: anywhere; }
+
+/* ---------- Setup guide (converted from Markdown) ---------- */
+.prose { display: flex; flex-direction: column; gap: 14px; max-width: 860px; }
+.prose h2 { font-size: var(--step-2); margin-top: 18px; }
+.prose h3 { font-size: var(--step-1); margin-top: 8px; }
+.prose ul, .prose ol { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: 6px; max-width: 70ch; }
+.prose li ul { margin-top: 6px; }
+.prose hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; width: 100%; }
+.prose blockquote { margin: 0; padding: 10px 16px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 8px 8px 0; color: var(--muted); }
+.prose code { background: var(--sunken); padding: .05em .35em; border-radius: 4px; }
+.prose .pre-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.prose pre.diagram { margin: 0; padding: 14px 16px; font: .8125rem/1.45 var(--font-mono); min-width: max-content; }
+
+/* ---------- Practice data ---------- */
+.data-block pre.code { padding: 14px 18px; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 20;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 8px;
+  font-weight: 700; box-shadow: var(--shadow); max-width: calc(100vw - 32px);
+}
+
+footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var(--line); padding-top: 18px; display: flex; flex-direction: column; gap: 6px; }
+
+@media (max-width: 899px) {
+  .shell { grid-template-columns: minmax(0, 1fr); gap: 20px; padding-block: 12px 56px; }
+  .nav { position: static; max-height: none; overflow: visible; padding-right: 0; }
+  .nav details[open] .nav-body { padding-top: 14px; }
+  .module { grid-template-columns: minmax(0, 1fr); }
+  .legend { grid-template-columns: minmax(0, 1fr); }
+  .view { gap: 32px; }
+}
+@media (min-width: 900px) {
+  .nav summary { display: none; }
+}
+@media (max-width: 520px) {
+  .lesson { grid-template-columns: 2.2em minmax(0, 1fr); }
+  .lesson .meta { grid-column: 2; flex-direction: row; align-items: center; }
+  .pager { grid-template-columns: minmax(0, 1fr); }
+  .pager a.next { grid-column: 1; }
+  pre.code { font-size: .78125rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ln.flash { animation: none; }
+}
+</style>
+
+<div class="ndvi-bar" aria-hidden="true"></div>
+
+<div class="shell">
+  <aside class="nav" aria-label="Course contents">
+    <a class="brand" href="#overview">
+      <strong>Earth Engine for Beginners</strong>
+      <span>JavaScript Code Editor</span>
+    </a>
+    <details id="navDetails" open>
+      <summary>All lessons</summary>
+      <div class="nav-body" id="navBody"></div>
+    </details>
+  </aside>
+
+  <main id="main">
+    <!-- OVERVIEW -->
+    <section class="view" id="view-overview" aria-labelledby="courseTitle">
+      <header class="hero">
+        <p class="eyebrow">Course scripts · Google Earth Engine</p>
+        <h1 id="courseTitle">Google Earth Engine for Beginners</h1>
+        <p class="lede">Start with no programming experience and finish with a map of your own study area.
+          Every script explains each line of code in plain language. Copy a script, paste it into the
+          Code Editor, press Run, and read along.</p>
+        <dl class="facts">
+          <div><dt>Lessons</dt><dd id="factLessons">15</dd></div>
+          <div><dt>Lines of commented code</dt><dd id="factLines">—</dd></div>
+          <div><dt>Default study area</dt><dd class="place">Mandi, Himachal Pradesh<span class="coords">31.45–31.85 °N · 76.75–77.25 °E</span></dd></div>
+        </dl>
+        <div class="actions">
+          <a class="btn primary" href="#setup">Start with the setup guide</a>
+          <a class="btn" href="#s01">Go to the first script</a>
+        </div>
+      </header>
+
+      <section class="section" aria-labelledby="howTitle">
+        <h2 id="howTitle">How to use the scripts</h2>
+        <ol class="steps">
+          <li><strong>Sign in to the Code Editor</strong><span class="muted">Open <a href="https://code.earthengine.google.com" target="_blank" rel="noopener">code.earthengine.google.com</a>. The <a href="#setup">setup guide</a> shows how to register.</span></li>
+          <li><strong>Copy a script</strong><span class="muted">Pick a lesson from the list and press <em>Copy script</em>.</span></li>
+          <li><strong>Paste, save, run</strong><span class="muted">In the Scripts tab choose NEW → File, paste, save, then press Run.</span></li>
+          <li><strong>Read and try</strong><span class="muted">Read the comments from top to bottom, then do the exercises at the end.</span></li>
+        </ol>
+      </section>
+
+      <section class="section" aria-labelledby="colourTitle">
+        <h2 id="colourTitle">Reading the code</h2>
+        <p>The code on this site is colour-coded so you can tell explanations from instructions, and your browser's work from Google's.</p>
+        <div class="legend">
+          <figure class="code-panel sample"><pre class="code" id="sampleCode"><code></code></pre></figure>
+          <ul>
+            <li><code class="t-c">// note</code><span>A comment: the explanation of the line below it.</span></li>
+            <li><code class="t-ee">ee.Image</code><span>Earth Engine object. Runs on Google's servers.</span></li>
+            <li><code class="t-g">Map</code><span>Code Editor tools: <code>Map</code>, <code>print</code>, <code>ui</code>, <code>Export</code>.</span></li>
+            <li><code class="t-s">'text'</code><span>Text, such as dataset IDs, band names and dates.</span></li>
+            <li><code class="t-n">4000</code><span>A number.</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="syllabusTitle">
+        <h2 id="syllabusTitle">Lessons</h2>
+        <div id="syllabus" class="section"></div>
+      </section>
+
+      <section class="section" aria-labelledby="scheduleTitle">
+        <h2 id="scheduleTitle">Suggested schedule</h2>
+        <p>Eight sessions of two to three hours. For a three-day workshop: day 1 covers lessons 00–06, day 2 covers 07–11, and day 3 covers 12–14.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Session</th><th>Lessons</th><th>By the end you can…</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>00, 01</td><td>Sign in and put a satellite image on the map</td></tr>
+              <tr><td>2</td><td>02, 03</td><td>Read and write basic code; create and filter vector data</td></tr>
+              <tr><td>3</td><td>04, 05, 06</td><td>Find, filter and display any dataset; upload and export data</td></tr>
+              <tr><td>4</td><td>07, 08</td><td>Make cloud-free composites and spectral indices</td></tr>
+              <tr><td>5</td><td>09, 10</td><td>Write functions, map over collections and calculate statistics</td></tr>
+              <tr><td>6</td><td>11</td><td>Build time series, charts and trend maps</td></tr>
+              <tr><td>7</td><td>12, 13</td><td>Classify land cover, check accuracy and detect change</td></tr>
+              <tr><td>8</td><td>14</td><td>Map your own study area and present it</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" aria-labelledby="errorsTitle">
+        <h2 id="errorsTitle">When something goes wrong</h2>
+        <p>Error messages appear in red in the Console. These are the ones beginners meet most often.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Message</th><th>Usual cause</th><th>Fix</th></tr></thead>
+            <tbody>
+              <tr><td><code>… is not defined</code></td><td>A typo in a variable name, or the variable is created further down</td><td>Check spelling and capital letters; create the variable before using it</td></tr>
+              <tr><td><code>Unexpected token</code></td><td>A missing comma, bracket or quote</td><td>Count <code>( ) [ ] { }</code> and check commas between items</td></tr>
+              <tr><td><code>Pattern 'B8' did not match any bands</code></td><td>The band name is wrong for this dataset (Landsat uses <code>SR_B5</code>)</td><td>Print the image and read its band names</td></tr>
+              <tr><td>Empty results or <code>Error in map</code></td><td>The filters removed every image</td><td>Print <code>.size()</code> after each filter</td></tr>
+              <tr><td><code>Too many pixels in the region</code></td><td>The area is too big for the chosen <code>scale</code></td><td>Add <code>maxPixels: 1e13</code> or use a coarser <code>scale</code></td></tr>
+              <tr><td><code>Computation timed out</code></td><td>The request is too heavy to show on screen</td><td>Use an Export, a coarser <code>scale</code> or <code>tileScale: 4</code></td></tr>
+              <tr><td><code>User memory limit exceeded</code></td><td>A very large calculation</td><td>Add <code>tileScale: 4</code> (or 8, 16)</td></tr>
+              <tr><td><code>Asset not found</code></td><td>Wrong asset path, or the asset is not shared</td><td>Copy the exact path from the Assets tab and check sharing</td></tr>
+              <tr><td>Export never starts</td><td>The task was created but not run</td><td>Open the Tasks tab and click RUN</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="foot">
+        <p>Scripts are written for the Earth Engine Code Editor (JavaScript). If a script reports that a dataset cannot be found, look it up in the <a href="https://developers.google.com/earth-engine/datasets" target="_blank" rel="noopener">Earth Engine Data Catalog</a>.</p>
+        <p>Independent teaching material. Not affiliated with Google.</p>
+      </footer>
+    </section>
+
+    <!-- SETUP GUIDE -->
+    <section class="view" id="view-setup" hidden aria-labelledby="setupTitle">
+      <div class="toolbar">
+        <span class="crumb">Module 1 · Lesson 00</span>
+        <div class="tools">
+          <a class="btn" href="https://code.earthengine.google.com" target="_blank" rel="noopener">Open Code Editor ↗</a>
+          <label class="toggle"><input type="checkbox" id="setupDone"> Done</label>
+        </div>
+      </div>
+      <header class="script-head">
+        <h2 id="setupTitle">Setting up Google Earth Engine</h2>
+        <p class="summary">Everything you need before writing your first line of code: what Earth Engine is, how to register, and a tour of the Code Editor.</p>
+      </header>
+      <article class="prose" id="setupBody"></article>
+      <nav class="pager" id="pagerSetup" aria-label="Next and previous lesson"></nav>
+    </section>
+
+    <!-- SCRIPT READER -->
+    <section class="view" id="view-script" hidden aria-labelledby="scriptTitle">
+      <div class="toolbar">
+        <span class="crumb" id="scriptCrumb"></span>
+        <div class="tools">
+          <button class="btn primary" id="copyBtn" type="button">Copy script</button>
+          <a class="btn" href="https://code.earthengine.google.com" target="_blank" rel="noopener">Open Code Editor ↗</a>
+          <label class="toggle"><input type="checkbox" id="wrapToggle"> Wrap long lines</label>
+          <label class="toggle"><input type="checkbox" id="doneToggle"> Done</label>
+        </div>
+      </div>
+      <div class="fallback" id="fallback" hidden>
+        <p>Your browser blocked automatic copying. The script is selected in the box below: press <kbd>Ctrl</kbd> + <kbd>C</kbd> (<kbd>⌘</kbd> + <kbd>C</kbd> on a Mac) to copy it.</p>
+        <textarea id="fallbackText" readonly rows="6" aria-label="Script text to copy"></textarea>
+      </div>
+      <header class="script-head">
+        <h2 id="scriptTitle"></h2>
+        <p class="summary" id="scriptSummary"></p>
+        <div class="learn" id="scriptLearn"></div>
+        <div class="parts" id="scriptPartsWrap">
+          <span class="label">Jump to a part</span>
+          <div class="chips" id="scriptParts"></div>
+        </div>
+      </header>
+      <figure class="code-panel">
+        <figcaption><strong id="scriptFile"></strong><span id="scriptLines"></span></figcaption>
+        <pre class="code" id="codeBlock"><code id="codeEl"></code></pre>
+      </figure>
+      <nav class="pager" id="pagerScript" aria-label="Next and previous lesson"></nav>
+    </section>
+
+    <!-- PRACTICE DATA -->
+    <section class="view" id="view-data" hidden aria-labelledby="dataTitle">
+      <div class="toolbar">
+        <span class="crumb">Resources · Practice data</span>
+        <div class="tools">
+          <button class="btn primary" id="copyCsvBtn" type="button">Copy CSV</button>
+        </div>
+      </div>
+      <header class="script-head">
+        <h2 id="dataTitle">Field sites for the upload exercise</h2>
+        <p class="summary">Ten example points around Mandi for lesson 06. Five are named places; the five marked <code>to_check</code> are for you to identify with the Inspector.</p>
+      </header>
+      <section class="section">
+        <h3>Make the file</h3>
+        <ol class="steps">
+          <li><strong>Copy</strong><span class="muted">Press <em>Copy CSV</em> above.</span></li>
+          <li><strong>Save</strong><span class="muted">Paste into a plain-text editor (Notepad, TextEdit in plain-text mode) and save as <code>field_sites_mandi.csv</code>.</span></li>
+          <li><strong>Upload</strong><span class="muted">In the Code Editor: Assets → NEW → CSV file. Check that X is <code>longitude</code> and Y is <code>latitude</code>.</span></li>
+          <li><strong>Use it</strong><span class="muted">In lesson 06, put in your project ID and set <code>USE_MY_FIELD_SITES = true</code>.</span></li>
+        </ol>
+      </section>
+      <figure class="code-panel data-block">
+        <figcaption><strong>field_sites_mandi.csv</strong><span id="csvRows"></span></figcaption>
+        <pre class="code" id="csvBlock"><code></code></pre>
+      </figure>
+      <nav class="pager" id="pagerData" aria-label="Next and previous lesson"></nav>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="application/json" id="course-data">/*__COURSE_DATA__*/</script>
+<script>
+(function () {
+  "use strict";
+  var DATA = JSON.parse(document.getElementById("course-data").textContent);
+  var scripts = DATA.scripts;
+  var byId = {};
+  scripts.forEach(function (s) { byId[s.id] = s; });
+
+  // Reading order for next / previous links.
+  var ORDER = ["setup"].concat(scripts.map(function (s) { return s.id; }), ["data"]);
+  var TITLES = { setup: "Setting up Google Earth Engine", data: "Practice data" };
+  scripts.forEach(function (s) { TITLES[s.id] = s.title; });
+
+  // ---- per-viewer conveniences (safe if storage is blocked) ----
+  function readStore(key, fallback) {
+    try { var v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; }
+  }
+  function writeStore(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage unavailable */ }
+  }
+  var done = new Set(readStore("gee-course-done-v1", []));
+  var wrap = !!readStore("gee-course-wrap-v1", false);
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // ---- syntax colouring: comments, strings, ee.* calls, editor globals, keywords, numbers ----
+  var TOKEN = /(\/\*[\s\S]*?\*\/|\/\/[^\n]*)|('(?:\\.|[^'\\\n])*'|"(?:\\.|[^"\\\n])*")|(\bee\.[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)|(\b(?:Map|Export|ui|print)\b)|(\b(?:var|function|return|if|else|for|true|false|null|new)\b)|(\b\d+(?:\.\d+)?(?:e\d+)?\b)/g;
+  var CLASSES = [null, "t-c", "t-s", "t-ee", "t-g", "t-k", "t-n"];
+
+  function tokenize(src) {
+    var tokens = [], last = 0, m;
+    TOKEN.lastIndex = 0;
+    while ((m = TOKEN.exec(src))) {
+      if (m.index > last) tokens.push(["", src.slice(last, m.index)]);
+      var cls = "";
+      for (var g = 1; g < CLASSES.length; g++) { if (m[g] !== undefined) { cls = CLASSES[g]; break; } }
+      tokens.push([cls, m[0]]);
+      last = TOKEN.lastIndex;
+    }
+    if (last < src.length) tokens.push(["", src.slice(last)]);
+    return tokens;
+  }
+
+  function toLines(src) {
+    var lines = [[]];
+    tokenize(src).forEach(function (tok) {
+      var parts = tok[1].split("\n");
+      parts.forEach(function (p, i) {
+        if (i > 0) lines.push([]);
+        if (p) lines[lines.length - 1].push([tok[0], p]);
+      });
+    });
+    return lines;
+  }
+
+  function renderCode(src, idPrefix) {
+    var html = [];
+    toLines(src).forEach(function (line, i) {
+      var n = i + 1;
+      var text = line.map(function (t) { return t[1]; }).join("");
+      var isPart = /^\/\/ PART \S+ — /.test(text);
+      var inner = line.map(function (t) {
+        return t[0] ? '<span class="' + t[0] + '">' + esc(t[1]) + "</span>" : esc(t[1]);
+      }).join("");
+      html.push('<span class="ln' + (isPart ? " part" : "") + '"' + (idPrefix ? ' id="' + idPrefix + n + '"' : "") +
+        ' data-n="' + n + '"><span class="lc">' + inner + "</span></span>");
+    });
+    return html.join("");
+  }
+
+  // ---- navigation ----
+  var navBody = document.getElementById("navBody");
+  function navLink(id, num, label) {
+    return '<a class="nav-link" href="#' + id + '" data-id="' + id + '"><span class="num">' + num +
+      '</span><span>' + esc(label) + '</span><span class="tick" aria-hidden="true">✓</span></a>';
+  }
+  function shortTitle(t) { return t.replace(/\s*\([^)]*\)\s*$/, ""); }
+
+  var navHtml = '<div class="nav-group"><h4>Start here</h4>' + navLink("overview", "", "Course overview") + "</div>";
+  DATA.modules.forEach(function (mod) {
+    navHtml += '<div class="nav-group"><h4>' + esc(mod.label) + "</h4>";
+    if (mod.key === "m1") navHtml += navLink("setup", "00", "Setup and Code Editor tour");
+    scripts.filter(function (s) { return s.module === mod.key; }).forEach(function (s) {
+      navHtml += navLink(s.id, s.num, shortTitle(s.title));
+    });
+    navHtml += "</div>";
+  });
+  navHtml += '<div class="nav-group"><h4>Resources</h4>' + navLink("data", "", "Practice data") + "</div>";
+  navBody.innerHTML = navHtml;
+
+  // ---- overview: facts, sample, syllabus ----
+  var totalLines = scripts.reduce(function (sum, s) { return sum + s.lines; }, 0);
+  document.getElementById("factLines").textContent = totalLines.toLocaleString("en-US");
+  document.getElementById("factLessons").textContent = String(scripts.length + 1);
+  document.querySelector("#sampleCode code").innerHTML = renderCode(DATA.sample, "");
+
+  function lessonRow(id, num, title, summary, meta) {
+    return '<li><a class="lesson" href="#' + id + '" data-id="' + id + '"><span class="num">' + num +
+      '</span><span><span class="t">' + esc(title) + '</span><span class="s">' + esc(summary) +
+      '</span></span><span class="meta"><span>' + meta + '</span><span class="pill" hidden>Done</span></span></a></li>';
+  }
+  var syl = "";
+  DATA.modules.forEach(function (mod) {
+    syl += '<section class="module"><div class="module-head"><p class="eyebrow">' + esc(mod.label) + "</p><h3>" +
+      esc(mod.title) + "</h3><p>" + esc(mod.blurb) + '</p></div><ol class="lessons">';
+    if (mod.key === "m1") syl += lessonRow("setup", "00", "Setting up Google Earth Engine", DATA.setupSummary, "guide");
+    scripts.filter(function (s) { return s.module === mod.key; }).forEach(function (s) {
+      syl += lessonRow(s.id, s.num, s.title, s.summary, s.lines + " lines");
+    });
+    syl += "</ol></section>";
+  });
+  document.getElementById("syllabus").innerHTML = syl;
+
+  function refreshDone() {
+    document.querySelectorAll("[data-id]").forEach(function (el) {
+      var isDone = done.has(el.getAttribute("data-id"));
+      if (el.classList.contains("nav-link")) el.classList.toggle("is-done", isDone);
+      var pill = el.querySelector(".pill");
+      if (pill) pill.hidden = !isDone;
+    });
+  }
+  function setDone(id, value) {
+    if (value) done.add(id); else done.delete(id);
+    writeStore("gee-course-done-v1", Array.from(done));
+    refreshDone();
+  }
+
+  // ---- setup guide + practice data ----
+  document.getElementById("setupBody").innerHTML = DATA.setupHtml;
+  document.querySelector("#csvBlock code").innerHTML = renderCode(DATA.csv.replace(/\n$/, ""), "");
+  document.getElementById("csvRows").textContent = (DATA.csv.trim().split("\n").length - 1) + " points";
+
+  var setupDone = document.getElementById("setupDone");
+  setupDone.addEventListener("change", function () { setDone("setup", setupDone.checked); });
+
+  // ---- pager ----
+  function renderPager(el, id) {
+    var i = ORDER.indexOf(id), html = "";
+    if (i > 0) html += '<a class="prev" href="#' + ORDER[i - 1] + '"><small>← Previous</small><span>' + esc(TITLES[ORDER[i - 1]]) + "</span></a>";
+    if (i < ORDER.length - 1) html += '<a class="next" href="#' + ORDER[i + 1] + '"><small>Next →</small><span>' + esc(TITLES[ORDER[i + 1]]) + "</span></a>";
+    el.innerHTML = html;
+  }
+
+  // ---- script reader ----
+  var current = null;
+  var codeBlock = document.getElementById("codeBlock");
+  var wrapToggle = document.getElementById("wrapToggle");
+  var doneToggle = document.getElementById("doneToggle");
+  wrapToggle.checked = wrap;
+  codeBlock.classList.toggle("wrap", wrap);
+  wrapToggle.addEventListener("change", function () {
+    wrap = wrapToggle.checked;
+    codeBlock.classList.toggle("wrap", wrap);
+    writeStore("gee-course-wrap-v1", wrap);
+  });
+  doneToggle.addEventListener("change", function () { if (current) setDone(current.id, doneToggle.checked); });
+
+  function showScript(s) {
+    current = s;
+    document.getElementById("scriptCrumb").textContent = s.label;
+    document.getElementById("scriptTitle").textContent = s.title;
+    document.getElementById("scriptSummary").textContent = s.summary;
+    document.getElementById("scriptFile").textContent = s.file;
+    document.getElementById("scriptLines").textContent = s.lines + " lines";
+    var learn = document.getElementById("scriptLearn");
+    learn.innerHTML = s.learn.length
+      ? "<h3>What you will learn</h3><ul>" + s.learn.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>"
+      : "";
+    learn.hidden = !s.learn.length;
+    var chips = document.getElementById("scriptParts");
+    chips.innerHTML = s.parts.map(function (p) {
+      return '<button type="button" class="chip" data-line="' + p.line + '"><b>' + esc(p.key) + "</b>" + esc(p.title) + "</button>";
+    }).join("");
+    document.getElementById("scriptPartsWrap").hidden = !s.parts.length;
+    document.getElementById("codeEl").innerHTML = renderCode(s.code, "L");
+    doneToggle.checked = done.has(s.id);
+    document.getElementById("fallback").hidden = true;
+    renderPager(document.getElementById("pagerScript"), s.id);
+  }
+
+  document.getElementById("scriptParts").addEventListener("click", function (e) {
+    var chip = e.target.closest(".chip");
+    if (!chip) return;
+    var line = document.getElementById("L" + chip.getAttribute("data-line"));
+    if (!line) return;
+    var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    line.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+    line.classList.remove("flash");
+    void line.offsetWidth;
+    line.classList.add("flash");
+  });
+
+  // ---- copying ----
+  var toastEl = document.getElementById("toast"), toastTimer = null;
+  function toast(msg) {
+    toastEl.textContent = msg;
+    toastEl.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.hidden = true; }, 2600);
+  }
+  function copyText(text, okMsg, onFail) {
+    try {
+      navigator.clipboard.writeText(text).then(function () { toast(okMsg); }, onFail);
+    } catch (e) { onFail(); }
+  }
+  document.getElementById("copyBtn").addEventListener("click", function () {
+    if (!current) return;
+    var s = current;
+    copyText(s.code, "Copied " + s.lines + " lines. Paste them into the Code Editor.", function () {
+      var box = document.getElementById("fallback"), ta = document.getElementById("fallbackText");
+      ta.value = s.code;
+      box.hidden = false;
+      ta.focus();
+      ta.select();
+    });
+  });
+  document.getElementById("copyCsvBtn").addEventListener("click", function () {
+    copyText(DATA.csv, "Copied the CSV. Paste it into a text editor and save as .csv.", function () {
+      var range = document.createRange();
+      range.selectNodeContents(document.querySelector("#csvBlock code"));
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      toast("Copying was blocked. The CSV is selected: press Ctrl+C (⌘C on a Mac).");
+    });
+  });
+
+  // ---- routing ----
+  var views = {
+    overview: document.getElementById("view-overview"),
+    setup: document.getElementById("view-setup"),
+    script: document.getElementById("view-script"),
+    data: document.getElementById("view-data")
+  };
+  var navDetails = document.getElementById("navDetails");
+  var desktop = window.matchMedia("(min-width: 900px)");
+  function syncNavOpen() { navDetails.open = desktop.matches; }
+  syncNavOpen();
+  if (desktop.addEventListener) desktop.addEventListener("change", syncNavOpen);
+
+  function route() {
+    var id = (location.hash || "#overview").slice(1);
+    var view = "overview";
+    if (id === "setup" || id === "data") view = id;
+    else if (byId[id]) { view = "script"; showScript(byId[id]); }
+    else id = "overview";
+    Object.keys(views).forEach(function (k) { views[k].hidden = k !== view; });
+    if (view === "setup") { setupDone.checked = done.has("setup"); renderPager(document.getElementById("pagerSetup"), "setup"); }
+    if (view === "data") renderPager(document.getElementById("pagerData"), "data");
+    document.querySelectorAll(".nav-link").forEach(function (a) {
+      if (a.getAttribute("data-id") === id) a.setAttribute("aria-current", "page");
+      else a.removeAttribute("aria-current");
+    });
+    if (!desktop.matches) navDetails.open = false;
+    document.title = (id === "overview" ? "" : TITLES[id] + " · ") + "Earth Engine for Beginners";
+    window.scrollTo(0, 0);
+  }
+  window.addEventListener("hashchange", route);
+  refreshDone();
+  route();
+})();
+</script>

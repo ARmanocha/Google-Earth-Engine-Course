@@ -28,7 +28,7 @@ explained** in a comment, and each script ends with *TRY IT YOURSELF* exercises.
 | 13 | `Module4_Analysis/13_change_detection.js` | Land-cover transitions, NDVI loss, Hansen forest loss, dNBR burn severity, MODIS burned area | `from*10+to`, `dNBR`, `MCD64A1` |
 | 14 | `Final_Project/14_final_study_area_map.js` | **Final project template**: full workflow → map with title, legend, colour bar, inset, north arrow, statistics panel, PNG + GeoTIFF outputs | `ui.Panel`, `ui.Thumbnail`, `getThumbURL` |
 | – | `practice_data/field_sites_mandi.csv` | 10 practice points for the asset-upload exercise | – |
-| – | `web/earth_engine_for_beginners.html` | Course web page: browse, read and copy every script (built from the files above) | – |
+| – | `web/earth_engine_for_beginners.html` | Course web page: browse, read and copy every script, and open each lesson's slides (built from the files above) | – |
 
 ---
 
@@ -47,6 +47,8 @@ python3 web/build.py
 
 `web/build.py` reads `web/template.html` (layout, styles and page logic), embeds every lesson,
 and writes `web/earth_engine_for_beginners.html`. It needs only Python 3, with no extra packages.
+Each lesson on the page has a **Slides** button that opens its slide deck; the links are set in
+`SLIDES` in `web/build.py`.
 
 ---
 

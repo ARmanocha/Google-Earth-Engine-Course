@@ -433,6 +433,7 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
       <div class="toolbar">
         <span class="crumb">Module 1 · Lesson 00</span>
         <div class="tools">
+          <a class="btn" id="setupSlidesBtn" href="#" target="_blank" rel="noopener" hidden>Slides ↗</a>
           <a class="btn" href="https://code.earthengine.google.com" target="_blank" rel="noopener">Open Code Editor ↗</a>
           <label class="toggle"><input type="checkbox" id="setupDone"> Done</label>
         </div>
@@ -451,6 +452,7 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
         <span class="crumb" id="scriptCrumb"></span>
         <div class="tools">
           <button class="btn primary" id="copyBtn" type="button">Copy script</button>
+          <a class="btn" id="slidesBtn" href="#" target="_blank" rel="noopener" hidden>Slides ↗</a>
           <a class="btn" href="https://code.earthengine.google.com" target="_blank" rel="noopener">Open Code Editor ↗</a>
           <label class="toggle"><input type="checkbox" id="wrapToggle"> Wrap long lines</label>
           <label class="toggle"><input type="checkbox" id="doneToggle"> Done</label>
@@ -643,6 +645,10 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
   document.querySelector("#csvBlock code").innerHTML = renderCode(DATA.csv.replace(/\n$/, ""), "");
   document.getElementById("csvRows").textContent = (DATA.csv.trim().split("\n").length - 1) + " points";
 
+  var setupSlidesBtn = document.getElementById("setupSlidesBtn");
+  setupSlidesBtn.href = DATA.setupSlides || "#";
+  setupSlidesBtn.hidden = !DATA.setupSlides;
+
   var setupDone = document.getElementById("setupDone");
   setupDone.addEventListener("change", function () { setDone("setup", setupDone.checked); });
 
@@ -675,6 +681,9 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
     document.getElementById("scriptSummary").textContent = s.summary;
     document.getElementById("scriptFile").textContent = s.file;
     document.getElementById("scriptLines").textContent = s.lines + " lines";
+    var slidesBtn = document.getElementById("slidesBtn");
+    slidesBtn.href = s.slides || "#";
+    slidesBtn.hidden = !s.slides;
     var learn = document.getElementById("scriptLearn");
     learn.innerHTML = s.learn.length
       ? "<h3>What you will learn</h3><ul>" + s.learn.map(function (l) { return "<li>" + esc(l) + "</li>"; }).join("") + "</ul>"

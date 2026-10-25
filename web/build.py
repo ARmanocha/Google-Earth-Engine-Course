@@ -51,6 +51,25 @@ SUMMARIES = {
 
 SETUP_SUMMARY = "What Earth Engine is, how to get an account and a Cloud project, and a tour of the Code Editor."
 
+# Lesson number → slide deck link (shown as a "Slides" button on each lesson)
+SLIDES = {
+    "00": "https://claude.ai/artifact/VHJ5FSC7x5HpHRynVTZ2bE",
+    "01": "https://claude.ai/artifact/CpR7dGjLgWi7sXmaonDaUB",
+    "02": "https://claude.ai/artifact/19SWHHQMYCKhS9PchPACNn",
+    "03": "https://claude.ai/artifact/RcEQykiqSBUeu4FxhZTYgA",
+    "04": "https://claude.ai/artifact/EFi9EFTSMED7uy6KJKopt6",
+    "05": "https://claude.ai/artifact/Y42UTBZJaeH1NbVQQu5kE1",
+    "06": "https://claude.ai/artifact/6wvNzEB2q1qiuxKLmc5WXw",
+    "07": "https://claude.ai/artifact/EvJQqVtdBPYotSdCb4RgGE",
+    "08": "https://claude.ai/artifact/9GmbFFLH57PakkcAK6Yapn",
+    "09": "https://claude.ai/artifact/7NK7SvK1WmGwe3txZDhMJV",
+    "10": "https://claude.ai/artifact/U7StN2tAg9weBhhYbWGSV5",
+    "11": "https://claude.ai/artifact/Su77TzeVXXjkjRerf6Mo1B",
+    "12": "https://claude.ai/artifact/1NBJ7RnqGsnckzqWUVfTZR",
+    "13": "https://claude.ai/artifact/NHN25rtbKtQhqoARszxnEp",
+    "14": "https://claude.ai/artifact/3JCenbTZjTHYcqbmKkyLxF",
+}
+
 SAMPLE = """// Load the SRTM elevation model (one global image).
 var dem = ee.Image('USGS/SRTMGL1_003');
 
@@ -98,6 +117,7 @@ def parse_script(path, module_key):
         "label": label,
         "title": title,
         "summary": SUMMARIES.get(num, ""),
+        "slides": SLIDES.get(num, ""),
         "learn": learn,
         "parts": parts,
         "file": path.name,
@@ -210,6 +230,7 @@ def main():
         "scripts": scripts,
         "setupHtml": md_to_html(setup_md),
         "setupSummary": SETUP_SUMMARY,
+        "setupSlides": SLIDES.get("00", ""),
         "csv": csv,
         "sample": SAMPLE,
     }

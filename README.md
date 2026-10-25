@@ -50,6 +50,36 @@ and writes `web/earth_engine_for_beginners.html`. It needs only Python 3, with n
 
 ---
 
+## Slide decks
+
+Every lesson has a slide deck that explains its script step by step, with highlighted code,
+diagrams, exercises, a recap and speaker notes for the instructor.
+
+| # | Lesson | Slides |
+|---|--------|--------|
+| 00 | Setting up Earth Engine | [Open deck](https://claude.ai/artifact/VHJ5FSC7x5HpHRynVTZ2bE) |
+| 01 | Hello, Earth Engine | [Open deck](https://claude.ai/artifact/CpR7dGjLgWi7sXmaonDaUB) |
+| 02 | JavaScript basics | [Open deck](https://claude.ai/artifact/19SWHHQMYCKhS9PchPACNn) |
+| 03 | Geometries and features | [Open deck](https://claude.ai/artifact/RcEQykiqSBUeu4FxhZTYgA) |
+| 04 | Images and collections | [Open deck](https://claude.ai/artifact/EFi9EFTSMED7uy6KJKopt6) |
+| 05 | Data catalog tour | [Open deck](https://claude.ai/artifact/Y42UTBZJaeH1NbVQQu5kE1) |
+| 06 | Assets and exports | [Open deck](https://claude.ai/artifact/6wvNzEB2q1qiuxKLmc5WXw) |
+| 07 | Cloud masking and composites | [Open deck](https://claude.ai/artifact/EvJQqVtdBPYotSdCb4RgGE) |
+| 08 | Band math and indices | [Open deck](https://claude.ai/artifact/9GmbFFLH57PakkcAK6Yapn) |
+| 09 | Functions and mapping | [Open deck](https://claude.ai/artifact/7NK7SvK1WmGwe3txZDhMJV) |
+| 10 | Reducers and zonal statistics | [Open deck](https://claude.ai/artifact/U7StN2tAg9weBhhYbWGSV5) |
+| 11 | Time series and charts | [Open deck](https://claude.ai/artifact/Su77TzeVXXjkjRerf6Mo1B) |
+| 12 | Supervised classification | [Open deck](https://claude.ai/artifact/1NBJ7RnqGsnckzqWUVfTZR) |
+| 13 | Change detection | [Open deck](https://claude.ai/artifact/NHN25rtbKtQhqoARszxnEp) |
+| 14 | Final project map | [Open deck](https://claude.ai/artifact/3JCenbTZjTHYcqbmKkyLxF) |
+
+The decks are private until shared: open each one and use its **Share** menu before giving the
+link to students. Each deck can also be downloaded as PPTX or PDF for offline teaching. Numbers
+shown as examples on the slides (for instance the confusion matrix in deck 12) are for teaching,
+not real results.
+
+---
+
 ## Default study area
 
 All scripts use the same **area of interest (`aoi`)**: a ~50 × 45 km rectangle around **Mandi,

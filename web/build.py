@@ -51,9 +51,8 @@ SUMMARIES = {
 
 SETUP_SUMMARY = "What Earth Engine is, how to get an account and a Cloud project, a tour of the Code Editor, and the landslide study area."
 
-# Lesson number → slide deck link (shown as a "Slides" button on each lesson).
-# The existing decks were made for the Mandi edition (see Mandi_Himachal/README.md),
-# so none are linked here yet.
+# Lesson number → slide deck link (shown as a "Slides" button on each lesson),
+# e.g. "01": "https://…". No decks are linked yet.
 SLIDES = {}
 
 SAMPLE = """// Load the SRTM elevation model (one global image).

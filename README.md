@@ -6,9 +6,6 @@ programming or GEE experience and finish with landslide-focused maps of their ow
 Every script is written for the **GEE Code Editor (JavaScript)**. **Every line of code is
 explained** in a comment, and each script ends with *TRY IT YOURSELF* exercises.
 
-**Another edition:** [`Mandi_Himachal/`](Mandi_Himachal/README.md) is the same course built
-around Mandi, Himachal Pradesh (India), with its own slide decks.
-
 ---
 
 ## Folder contents
@@ -56,9 +53,8 @@ A lesson shows a **Slides** button when its deck link is added to `SLIDES` in `w
 
 ## Slide decks
 
-The existing 15 slide decks were made for the Mandi edition; their links are in
-[`Mandi_Himachal/README.md`](Mandi_Himachal/README.md). This edition has no decks yet, so the
-web page shows no Slides buttons.
+This course has no slide decks yet, so the web page shows no Slides buttons. To add one, put the
+deck link for that lesson in `SLIDES` in `web/build.py` and rebuild the page.
 
 ---
 

@@ -27,54 +27,40 @@ MODULES = [
     ("Module3_Image_Processing", "m3", "Module 3", "Image processing",
      "Cloud-free composites, spectral indices, functions over collections, and statistics."),
     ("Module4_Analysis", "m4", "Module 4", "Analysis",
-     "Time series, supervised classification with accuracy assessment, and change detection."),
+     "Time series and the rain behind landslides, supervised classification with accuracy assessment, and change detection."),
     ("Final_Project", "final", "Final project", "Map your study area",
-     "Put everything together for your own study area and produce finished maps."),
+     "Put everything together for your own study area and produce finished landslide maps."),
 ]
 
 SUMMARIES = {
-    "01": "Your first script: print to the Console, move the map, load a DEM and a Sentinel-2 image, and read pixels with the Inspector.",
-    "02": "Variables, lists, dictionaries and functions, plus the key idea of client and server objects.",
-    "03": "Points, lines, polygons and buffers; features with attributes; filtering collections; district boundaries.",
-    "04": "Inspect images, filter collections by area, date and cloud cover, clip, and compare a mosaic with a median.",
-    "05": "Landsat, Sentinel-1 and -2, MODIS, DEMs, CHIRPS rainfall, ERA5 climate, land cover and surface water.",
-    "06": "Upload shapefiles, CSVs and GeoTIFFs as assets, then export images and tables to Drive or Assets.",
-    "07": "Mask clouds with Cloud Score+, SCL and Landsat QA bits, then build median, seasonal and annual composites.",
-    "08": "NDVI, EVI, SAVI, NDWI, MNDWI, NDBI and NBR; thresholds, masks, simple classes and area.",
+    "01": "Your first script: print to the Console, move the map, load a DEM, a hillshade and a Sentinel-2 image of the Kłodne landslide area, and read pixels with the Inspector.",
+    "02": "Variables, lists, dictionaries and functions (slope in percent to degrees), plus the key idea of client and server objects.",
+    "03": "Points, lines, polygons and buffers around a landslide site; features with attributes; filtering; voivodeship and district boundaries.",
+    "04": "Inspect images, filter collections by area, date, season and cloud cover, clip, and compare a mosaic with a median.",
+    "05": "Landsat, Sentinel-1 and -2, MODIS, DEMs with slope and aspect, ERA5-Land rainfall, WorldCover, CORINE, Dynamic World and surface water.",
+    "06": "Upload shapefiles, CSVs, LiDAR DEMs and a landslide inventory as assets, then export in Poland's coordinate system.",
+    "07": "Mask clouds with Cloud Score+, SCL and Landsat QA bits, then build summer, seasonal and annual composites.",
+    "08": "NDVI, EVI, SAVI, NDWI, MNDWI, NDBI, NBR and the Bare Soil Index, then bare ground on steep slopes.",
     "09": "Write your own functions and run them over every image, feature or list item with .map().",
-    "10": "Statistics for an area, area per land-cover class, zonal statistics per district, charts and CSV export.",
-    "11": "NDVI and rainfall time series, multi-site and day-of-year charts, trend maps, and click-to-chart.",
-    "12": "Training data, Random Forest, CART and SVM, confusion matrix and kappa, area per class, and a legend.",
-    "13": "Land-cover transitions, NDVI loss, Hansen forest loss, and burn severity from dNBR.",
-    "14": "The whole workflow on your own study area, ending in a finished map with legend, inset and exports.",
+    "10": "Statistics for an area, how much land is steep, land cover on steep slopes, and mean slope per district.",
+    "11": "NDVI and rainfall time series, the rain before the June 2010 landslide at Kłodne, trend maps, and click-to-chart.",
+    "12": "Training data, Random Forest, CART and SVM, accuracy, area per class, and an optional landslide-susceptibility model.",
+    "13": "Land-cover change, landslide candidates after the 2010 rains, Hansen forest loss, and new bare ground on slopes.",
+    "14": "Landslide maps of your own study area: slope classes, a susceptibility index, legends, inset and exports.",
 }
 
-SETUP_SUMMARY = "What Earth Engine is, how to get an account and a Cloud project, and a tour of the Code Editor."
+SETUP_SUMMARY = "What Earth Engine is, how to get an account and a Cloud project, a tour of the Code Editor, and the landslide study area."
 
-# Lesson number → slide deck link (shown as a "Slides" button on each lesson)
-SLIDES = {
-    "00": "https://claude.ai/artifact/VHJ5FSC7x5HpHRynVTZ2bE",
-    "01": "https://claude.ai/artifact/CpR7dGjLgWi7sXmaonDaUB",
-    "02": "https://claude.ai/artifact/19SWHHQMYCKhS9PchPACNn",
-    "03": "https://claude.ai/artifact/RcEQykiqSBUeu4FxhZTYgA",
-    "04": "https://claude.ai/artifact/EFi9EFTSMED7uy6KJKopt6",
-    "05": "https://claude.ai/artifact/Y42UTBZJaeH1NbVQQu5kE1",
-    "06": "https://claude.ai/artifact/6wvNzEB2q1qiuxKLmc5WXw",
-    "07": "https://claude.ai/artifact/EvJQqVtdBPYotSdCb4RgGE",
-    "08": "https://claude.ai/artifact/9GmbFFLH57PakkcAK6Yapn",
-    "09": "https://claude.ai/artifact/7NK7SvK1WmGwe3txZDhMJV",
-    "10": "https://claude.ai/artifact/U7StN2tAg9weBhhYbWGSV5",
-    "11": "https://claude.ai/artifact/Su77TzeVXXjkjRerf6Mo1B",
-    "12": "https://claude.ai/artifact/1NBJ7RnqGsnckzqWUVfTZR",
-    "13": "https://claude.ai/artifact/NHN25rtbKtQhqoARszxnEp",
-    "14": "https://claude.ai/artifact/3JCenbTZjTHYcqbmKkyLxF",
-}
+# Lesson number → slide deck link (shown as a "Slides" button on each lesson).
+# The existing decks were made for the Mandi edition (see Mandi_Himachal/README.md),
+# so none are linked here yet.
+SLIDES = {}
 
 SAMPLE = """// Load the SRTM elevation model (one global image).
 var dem = ee.Image('USGS/SRTMGL1_003');
 
-// Colour it from 500 m (green) to 4000 m (white) and add it to the map.
-Map.addLayer(dem, {min: 500, max: 4000, palette: ['green', 'white']}, 'Elevation');"""
+// Colour it from 250 m (green) to 1150 m (white) and add it to the map.
+Map.addLayer(dem, {min: 250, max: 1150, palette: ['green', 'white']}, 'Elevation');"""
 
 HEADER_RE = re.compile(r"^\s*\*\s+(.*?·\s*Script\s+(\d+))\s+—\s+(.+?)\s*$")
 PART_RE = re.compile(r"^// PART (\S+) — (.+?)\s*$")
@@ -223,7 +209,7 @@ def main():
 
     setup_md = (ROOT / "Module1_Getting_Started" / "00_Setup_and_Code_Editor_Tour.md").read_text(encoding="utf-8")
     setup_md = re.sub(r"^# .*\n", "", setup_md, count=1)          # the page shows its own title
-    csv = (ROOT / "practice_data" / "field_sites_mandi.csv").read_text(encoding="utf-8")
+    csv = (ROOT / "practice_data" / "field_sites_limanowa.csv").read_text(encoding="utf-8")
 
     data = {
         "modules": modules,

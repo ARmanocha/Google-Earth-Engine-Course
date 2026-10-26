@@ -1,9 +1,9 @@
 /*******************************************************************************
- * GOOGLE EARTH ENGINE FOR BEGINNERS
+ * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 3 · Script 08 — Band math and spectral indices
  * -----------------------------------------------------------------------------
  * A SPECTRAL INDEX combines two or more bands into one number that highlights
- * something: vegetation, water, buildings, burnt land, snow …
+ * something: vegetation, water, buildings, bare soil, burnt land, snow …
  *
  * Most indices are a NORMALISED DIFFERENCE:   (A − B) / (A + B)
  * which always lies between −1 and +1.
@@ -16,13 +16,16 @@
  *  NDWI  | (Green − NIR) / (Green + NIR) B3, B8   | open water
  *  MNDWI | (Green − SWIR1)/(Green + SWIR1) B3, B11| water (better near towns)
  *  NDBI  | (SWIR1 − NIR) / (SWIR1 + NIR) B11, B8  | built-up / bare land
- *  NBR   | (NIR − SWIR2) / (NIR + SWIR2) B8, B12  | burnt areas (fire scars)
+ *  NBR   | (NIR − SWIR2) / (NIR + SWIR2) B8, B12  | burnt or freshly cleared land
+ *  BSI   | ((SWIR1+Red)−(NIR+Blue)) /             | bare soil: fresh landslide
+ *        | ((SWIR1+Red)+(NIR+Blue)) B11,B4,B8,B2  | scars, ploughed fields
  *  NDSI  | (Green − SWIR1)/(Green + SWIR1) B3, B11| snow (same maths as MNDWI)
  *
  * WHAT YOU WILL LEARN
  *   • Three ways to do band math: normalizedDifference(), maths methods, expression()
  *   • Colour palettes for indices
  *   • Thresholds, masks and simple rule-based classes
+ *   • Combining an index with SLOPE to find bare ground on steep hillsides
  *   • Area of a thresholded class, and a histogram chart
  ******************************************************************************/
 
@@ -32,7 +35,7 @@
 // =============================================================================
 
 // Study area rectangle [west, south, east, north].
-var aoi = ee.Geometry.Rectangle([76.75, 31.45, 77.25, 31.85]);
+var aoi = ee.Geometry.Rectangle([20.25, 49.60, 20.80, 49.85]);
 
 // Zoom to it.
 Map.centerObject(aoi, 10);
@@ -51,10 +54,10 @@ function maskS2(image) {
                        .copyProperties(image, ['system:time_start']));
 }
 
-// Post-monsoon 2024 median composite.
+// Summer 2024 median composite (trees in leaf, no snow).
 var composite = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
   .filterBounds(aoi)                          // our area
-  .filterDate('2024-10-01', '2025-01-01')     // Oct–Dec 2024
+  .filterDate('2024-06-01', '2024-09-01')     // Jun–Aug 2024
   .linkCollection(csPlus, ['cs_cdf'])         // attach cloud scores
   .map(maskS2)                                // mask + scale each image
   .median()                                   // median composite
@@ -133,7 +136,7 @@ Map.addLayer(savi, {min: 0, max: 0.6, palette: ndviPalette2}, 'SAVI', false);
 
 
 // =============================================================================
-// PART 3 — Water, built-up, burn and snow indices
+// PART 3 — Water, built-up, burn and bare-soil indices
 // =============================================================================
 
 // NDWI (McFeeters): green vs NIR. Water > 0.
@@ -145,8 +148,20 @@ var mndwi = composite.normalizedDifference(['B3', 'B11']).rename('MNDWI');
 // NDBI: SWIR1 vs NIR. Built-up and bare land are positive.
 var ndbi = composite.normalizedDifference(['B11', 'B8']).rename('NDBI');
 
-// NBR: NIR vs SWIR2. Healthy vegetation high; burnt land low (used in Script 13).
+// NBR: NIR vs SWIR2. Healthy vegetation high; burnt or freshly cleared land low.
 var nbr = composite.normalizedDifference(['B8', 'B12']).rename('NBR');
+
+// BSI — Bare Soil Index. Bare soil is bright in SWIR1 and red, dull in NIR and
+// blue, so BSI is positive on bare ground and negative under green plants.
+var bsi = composite.expression(
+  '((SWIR1 + RED) - (NIR + BLUE)) / ((SWIR1 + RED) + (NIR + BLUE))', // the formula
+  {
+    SWIR1: composite.select('B11'),   // short-wave infrared 1
+    RED: composite.select('B4'),      // red
+    NIR: composite.select('B8'),      // near-infrared
+    BLUE: composite.select('B2')      // blue
+  }
+).rename('BSI');
 
 // A white → blue palette for water indices.
 var waterPalette = ['ffffff', 'c6dbef', '6baed6', '2171b5', '08306b'];
@@ -156,6 +171,7 @@ Map.addLayer(ndwi, {min: -0.5, max: 0.5, palette: waterPalette}, 'NDWI', false);
 Map.addLayer(mndwi, {min: -0.5, max: 0.5, palette: waterPalette}, 'MNDWI', false);
 Map.addLayer(ndbi, {min: -0.5, max: 0.3, palette: ['1a9850', 'ffffbf', 'd73027']}, 'NDBI', false);
 Map.addLayer(nbr, {min: -0.3, max: 0.7, palette: ['7a0403', 'f58b1f', 'ffffbf', '1a9850']}, 'NBR', false);
+Map.addLayer(bsi, {min: -0.4, max: 0.2, palette: ['1a9850', 'ffffbf', 'a6611a']}, 'BSI (bare soil)', false);
 
 
 // =============================================================================
@@ -169,7 +185,8 @@ var indices = ndvi
   .addBands(ndwi)       // band 4
   .addBands(mndwi)      // band 5
   .addBands(ndbi)       // band 6
-  .addBands(nbr);       // band 7
+  .addBands(nbr)        // band 7
+  .addBands(bsi);       // band 8
 
 // Check the band names.
 print('Index image bands:', indices.bandNames());
@@ -190,7 +207,7 @@ var waterBinary = mndwi.gt(0);
 // .selfMask() hides the 0 pixels so only the water (1) is shown.
 var water = waterBinary.selfMask();
 
-// Show water in blue.
+// Show water in blue — mostly the Rożnów Reservoir and the Dunajec river.
 Map.addLayer(water, {palette: ['0000ff']}, 'Water (MNDWI > 0)');
 
 // Combine conditions with .and() / .or(): dense vegetation = NDVI > 0.6 AND not water.
@@ -226,7 +243,39 @@ Map.addLayer(ndviClasses, {min: 0, max: 4, palette: classPalette}, 'NDVI classes
 
 
 // =============================================================================
-// PART 7 — How much area is water? (pixel area)
+// PART 7 — Bare ground on steep slopes (where landslide scars can hide)
+// =============================================================================
+
+// A fresh landslide strips the vegetation and leaves BARE SOIL on a SLOPE.
+// We can look for exactly that combination: high BSI, low NDVI, steep terrain.
+
+// Slope in degrees from the SRTM DEM (30 m), clipped to the AOI.
+var slope = ee.Terrain.slope(ee.Image('USGS/SRTMGL1_003')).clip(aoi);
+
+// Show the slope map: pale = flat, dark red = steep.
+Map.addLayer(slope, {min: 0, max: 35, palette: ['ffffcc', 'fed976', 'fd8d3c', 'e31a1c', '800026']},
+             'Slope (°)', false);
+
+// Three conditions, combined with .and():
+//   BSI > 0      → the surface behaves like bare soil
+//   NDVI < 0.3   → there is little green vegetation
+//   slope > 15   → the ground is steeper than 15 degrees
+var bareSteep = bsi.gt(0)
+  .and(ndvi.lt(0.3))
+  .and(slope.gt(15))
+  .selfMask();                                   // show only the pixels where all three are true
+
+// Show them in bright red on top of the true-colour image.
+Map.addLayer(bareSteep, {palette: ['ff0000']}, 'Bare ground on slopes > 15°');
+
+// CAUTION: these pixels are CANDIDATES, not landslides. Quarries, forest roads,
+// ski runs, building sites and ploughed fields on hillsides look the same.
+// Zoom in and check each one against the satellite basemap (and a LiDAR
+// hillshade if you have one) before calling it a landslide.
+
+
+// =============================================================================
+// PART 8 — How much area is water? And bare steep ground? (pixel area)
 // =============================================================================
 
 // ee.Image.pixelArea() gives the area of every pixel in m².
@@ -245,9 +294,15 @@ var waterAreaSum = waterArea.reduceRegion({
 var waterKm2 = ee.Number(waterAreaSum.get('water_m2')).divide(1e6);
 print('Water area in the AOI (km²):', waterKm2);
 
+// The same recipe for the bare-steep candidates. .unmask(0) turns the hidden
+// (masked) pixels back into 0 so they add nothing to the sum.
+var bareSteepArea = ee.Image.pixelArea().multiply(bareSteep.unmask(0)).rename('bare_m2')
+  .reduceRegion({reducer: ee.Reducer.sum(), geometry: aoi, scale: 10, maxPixels: 1e10});
+print('Bare ground on slopes > 15° (hectares):', ee.Number(bareSteepArea.get('bare_m2')).divide(1e4));
+
 
 // =============================================================================
-// PART 8 — A histogram of NDVI values
+// PART 9 — A histogram of NDVI values
 // =============================================================================
 
 // ui.Chart.image.histogram draws how many pixels have each NDVI value.
@@ -258,7 +313,7 @@ var ndviHistogram = ui.Chart.image.histogram({
   maxBuckets: 100,      // number of bars
   maxPixels: 1e8        // allow many pixels
 }).setOptions({
-  title: 'NDVI histogram, Oct–Dec 2024',   // chart title
+  title: 'NDVI histogram, Jun–Aug 2024',   // chart title
   hAxis: {title: 'NDVI'},                  // x-axis label
   vAxis: {title: 'Number of pixels'},      // y-axis label
   legend: {position: 'none'},              // no legend needed
@@ -273,7 +328,9 @@ print(ndviHistogram);
  * TRY IT YOURSELF
  *   1. Compute the Normalised Difference Red-Edge index NDRE = (B8 − B5)/(B8 + B5).
  *   2. Change the water threshold from 0 to 0.2. How does the water area change?
- *   3. Compare NDVI for Mar–May 2024 and Oct–Dec 2024 (change the dates).
+ *   3. Compare NDVI for Mar–May 2024 and Jun–Aug 2024 (change the dates).
  *      Which areas change most? (Hint: subtract one NDVI from the other.)
- *   4. Make a built-up mask with NDBI > 0 AND NDVI < 0.2 and show it in red.
+ *   4. In PART 7 change the slope limit to 10° and then to 25°. How does the
+ *      candidate area change? Zoom into three candidates near Kłodne and
+ *      decide what each one really is.
  ******************************************************************************/

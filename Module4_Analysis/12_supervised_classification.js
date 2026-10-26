@@ -1,5 +1,5 @@
 /*******************************************************************************
- * GOOGLE EARTH ENGINE FOR BEGINNERS
+ * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 4 · Script 12 — Supervised classification and accuracy assessment
  * -----------------------------------------------------------------------------
  * SUPERVISED CLASSIFICATION = teach the computer what each land-cover class
@@ -12,6 +12,7 @@
  *   4. Train classifiers: Random Forest, CART, SVM
  *   5. Check ACCURACY on the test points (confusion matrix, overall accuracy, kappa)
  *   6. Classify the whole image, calculate area per class, export
+ *   (+ OPTIONAL PART 12: a landslide SUSCEPTIBILITY map from your own inventory)
  *
  * CLASSES USED HERE (codes 0–5)
  *   0 Water | 1 Forest | 2 Shrub & grass | 3 Cropland | 4 Built-up | 5 Bare / snow
@@ -22,6 +23,9 @@
  *      errors, so for real projects collect your own (option B).
  *   B) YOUR OWN: draw points/polygons for each class with the map tools.
  *      Instructions are in PART 2B.
+ *
+ * WHY LAND COVER MATTERS FOR LANDSLIDES: forest roots hold the soil and trees
+ * use up water; slopes cleared for fields, pasture or roads slide more easily.
  ******************************************************************************/
 
 
@@ -30,7 +34,7 @@
 // =============================================================================
 
 // Study area rectangle [west, south, east, north].
-var aoi = ee.Geometry.Rectangle([76.75, 31.45, 77.25, 31.85]);
+var aoi = ee.Geometry.Rectangle([20.25, 49.60, 20.80, 49.85]);
 
 // Year of the image (2021 matches the WorldCover 2021 labels used in option A).
 var YEAR = 2021;
@@ -63,10 +67,10 @@ function maskS2(image) {
               .updateMask(clear);
 }
 
-// Median composite of the whole year (all seasons → stable "average" picture).
+// Median composite of the growing season, April–October (no snow, plants green).
 var s2 = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
   .filterBounds(aoi)                                                // our area
-  .filterDate(YEAR + '-01-01', (YEAR + 1) + '-01-01')               // the chosen year
+  .filterDate(YEAR + '-04-01', YEAR + '-11-01')                      // April–October of the chosen year
   .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 70))              // skip very cloudy scenes
   .linkCollection(csPlus, ['cs_cdf'])                               // attach cloud score
   .map(maskS2)                                                      // mask + scale
@@ -80,12 +84,12 @@ var ndbi = s2.normalizedDifference(['B11', 'B8']).rename('NDBI');   // built-up
 
 // Terrain also helps in mountains (e.g. crops are on flatter, lower land).
 var srtm = ee.Image('USGS/SRTMGL1_003');
-// Elevation ÷ 4000 and slope ÷ 90 put them on a ~0–1 scale like the other bands.
+// Elevation ÷ 1500 and slope ÷ 60 put them on a ~0–1 scale like the other bands.
 // (Similar ranges matter for SVM; Random Forest and CART don't mind.)
 // .toFloat() first: SRTM stores whole numbers, and whole ÷ whole drops the decimals
-// (760 ÷ 4000 would give 0 instead of 0.19).
-var elevation = srtm.toFloat().divide(4000).rename('elev');
-var slope = ee.Terrain.slope(srtm).divide(90).rename('slope');
+// (400 ÷ 1500 would give 0 instead of 0.27).
+var elevation = srtm.toFloat().divide(1500).rename('elev');
+var slope = ee.Terrain.slope(srtm).divide(60).rename('slope');
 
 // Stack everything into one image of "predictors".
 var predictors = s2.addBands(ndvi).addBands(ndwi).addBands(ndbi)
@@ -431,6 +435,81 @@ Export.table.toDrive({
 });
 
 
+// =============================================================================
+// PART 12 — OPTIONAL: a landslide SUSCEPTIBILITY map from your own inventory
+// =============================================================================
+
+// Susceptibility = how LIKELY a place is to have landslides, judged from places
+// where landslides already happened. It is the same idea as land-cover
+// classification, with two classes: 1 = landslide, 0 = no landslide.
+// It needs a landslide inventory uploaded as an asset (Script 06, step D).
+
+// ► Set to true after uploading your landslide polygons, and put in the path.
+var USE_LANDSLIDE_INVENTORY = false;
+var LANDSLIDE_ASSET = 'projects/YOUR-PROJECT-ID/assets/landslides';
+
+// Everything below runs only when the setting above is true.
+if (USE_LANDSLIDE_INVENTORY) {
+  // The landslide polygons.
+  var landslides = ee.FeatureCollection(LANDSLIDE_ASSET);
+
+  // Factors that control landslides, stacked into one image:
+  var susPredictors = ee.Image.cat([
+    ee.Terrain.slope(srtm).rename('slope_deg'),                      // steepness
+    srtm.rename('elevation'),                                        // height
+    ee.Terrain.aspect(srtm).multiply(Math.PI / 180).cos()            // aspect turned into
+      .rename('northness'),                                          //   1 = north-facing, −1 = south-facing
+    ndvi,                                                            // vegetation
+    rfMap.rename('landcover_class')                                  // our land-cover map
+  ]).clip(aoi);
+
+  // A 0/1 image: 1 inside landslide polygons, 0 everywhere else.
+  // ee.Image(0) is all zeros; .paint() burns the value 1 into the polygons.
+  var landslideLabel = ee.Image(0).paint(landslides, 1).rename('landslide').clip(aoi);
+
+  // Equal numbers of landslide and non-landslide points, with all factors read.
+  var susSamples = susPredictors.addBands(landslideLabel).stratifiedSample({
+    numPoints: 500,          // up to 500 points per class
+    classBand: 'landslide',  // 0 or 1
+    region: aoi,             // inside the AOI
+    scale: 30,               // 30 m (the DEM's pixel size)
+    seed: 7,                 // repeatable
+    geometries: true         // keep locations
+  }).randomColumn('random', 7);
+
+  // 70 % to train, 30 % to test — as in PART 3.
+  var susTrain = susSamples.filter(ee.Filter.lt('random', 0.7));
+  var susTest = susSamples.filter(ee.Filter.gte('random', 0.7));
+
+  // A Random Forest that outputs a PROBABILITY (0–1) instead of a class.
+  var susModel = ee.Classifier.smileRandomForest({numberOfTrees: 100, seed: 7})
+    .setOutputMode('PROBABILITY')                          // probability of class 1 (landslide)
+    .train({features: susTrain, classProperty: 'landslide', inputProperties: susPredictors.bandNames()});
+
+  // The susceptibility map: the probability of "landslide" at every pixel.
+  var susceptibility = susPredictors.classify(susModel).rename('susceptibility');
+  Map.addLayer(susceptibility, {min: 0, max: 1, palette: ['1a9850', 'ffffbf', 'fdae61', 'd7191c']},
+               'Landslide susceptibility (probability)');
+  Map.addLayer(landslides.style({color: '000000', fillColor: '00000000', width: 1}), {}, 'Landslide inventory');
+
+  // Check on the test points: probability ≥ 0.5 counts as "landslide".
+  var susTested = susTest.classify(susModel).map(function(f) {
+    // Turn the probability into 0 or 1 and store it.
+    return f.set('predicted', ee.Number(f.get('classification')).gte(0.5));
+  });
+  var susMatrix = susTested.errorMatrix('landslide', 'predicted');
+  print('Susceptibility model — confusion matrix:', susMatrix);
+  print('Susceptibility model — overall accuracy:', susMatrix.accuracy());
+
+  // Which factors mattered most?
+  print('Susceptibility model — variable importance:', ee.Dictionary(susModel.explain().get('importance')));
+
+  // CAUTION: this is a FIRST, simple model for learning. Real susceptibility
+  // studies add geology and LiDAR-based terrain factors, test on separate areas,
+  // and compare with the official SOPO maps of the Polish Geological Institute.
+}
+
+
 /*******************************************************************************
  * TRY IT YOURSELF
  *   1. Remove 'elev' and 'slope' from the predictors. Does accuracy drop?
@@ -439,4 +518,6 @@ Export.table.toDrive({
  *   3. Draw your own training data (PART 2B) and compare with WorldCover labels.
  *   4. Classify 2024 using the classifier trained on 2021 (change YEAR only for
  *      the image). Which classes change? (This is Script 13!)
+ *   5. If you have a landslide inventory, run PART 12. Which factor is most
+ *      important? Do high-probability areas match the SOPO maps?
  ******************************************************************************/

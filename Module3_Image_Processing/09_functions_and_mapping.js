@@ -1,5 +1,5 @@
 /*******************************************************************************
- * GOOGLE EARTH ENGINE FOR BEGINNERS
+ * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 3 · Script 09 — Functions and mapping over collections
  * -----------------------------------------------------------------------------
  * In Earth Engine we almost never use for-loops on images. Instead we:
@@ -22,7 +22,7 @@
 // =============================================================================
 
 // Study area rectangle [west, south, east, north].
-var aoi = ee.Geometry.Rectangle([76.75, 31.45, 77.25, 31.85]);
+var aoi = ee.Geometry.Rectangle([20.25, 49.60, 20.80, 49.85]);
 
 // Zoom to it.
 Map.centerObject(aoi, 10);
@@ -168,11 +168,11 @@ print('Bands after the factory functions:', s2AllIndices.first().bandNames());
 // PART 6 — .map() over a FeatureCollection
 // =============================================================================
 
-// A few sites (points).
+// A few sites (points; approximate village/town centres).
 var sites = ee.FeatureCollection([
-  ee.Feature(ee.Geometry.Point([76.9318, 31.7084]), {name: 'Mandi town'}),
-  ee.Feature(ee.Geometry.Point([77.1009, 31.7543]), {name: 'Prashar Lake'}),
-  ee.Feature(ee.Geometry.Point([76.9000, 31.5900]), {name: 'Balh valley'})
+  ee.Feature(ee.Geometry.Point([20.4228, 49.7064]), {name: 'Limanowa'}),
+  ee.Feature(ee.Geometry.Point([20.5661, 49.6850]), {name: 'Kłodne'}),
+  ee.Feature(ee.Geometry.Point([20.2767, 49.6552]), {name: 'Mogielica'})
 ]);
 
 // For each site: make a 500 m buffer and calculate the mean of the max-NDVI inside it.
@@ -221,7 +221,7 @@ var monthlyNdvi = ee.ImageCollection.fromImages(monthlyImages);
 // 12 images, one per month.
 print('Monthly NDVI collection:', monthlyNdvi);
 
-// How many S2 images were available each month? (The monsoon has fewer clear ones.)
+// How many S2 images were available each month? (Cloudy months give fewer clear pixels.)
 print('Images per month:', monthlyNdvi.aggregate_array('n_images'));
 
 // A quick chart of the AOI-average NDVI for each month (charts → Script 11).
@@ -283,8 +283,8 @@ print('Cloudy images:', labelled.filter(ee.Filter.eq('sky', 'cloudy')).size());
  *   1. Write a function addEVI(image) using .expression() (see Script 08) and
  *      map it over s2Clean.
  *   2. Use makeIndexAdder to add MNDWI ('B3', 'B11').
- *   3. Change PART 7 to make monthly composites of MNDWI. When is Pandoh
- *      reservoir largest?
+ *   3. Change PART 7 to make monthly composites of MNDWI. When is the Rożnów
+ *      Reservoir largest? (A reservoir's water level changes during the year.)
  *   4. Make YEARLY maximum-NDVI composites for 2019–2024 with
  *      ee.List.sequence(2019, 2024).map(...). (Hint: use ee.Date.fromYMD(y, 1, 1)
  *      and .advance(1, 'year') for the date range.)

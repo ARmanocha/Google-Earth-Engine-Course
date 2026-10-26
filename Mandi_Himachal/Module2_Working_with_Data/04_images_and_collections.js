@@ -1,5 +1,5 @@
 /*******************************************************************************
- * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
+ * GOOGLE EARTH ENGINE FOR BEGINNERS
  * Module 2 · Script 04 — Images and ImageCollections; filtering and clipping
  * -----------------------------------------------------------------------------
  * RASTER DATA in Earth Engine comes in two levels:
@@ -21,11 +21,10 @@
 // PART 0 — Study area
 // =============================================================================
 
-// Our study area: the Beskid Wyspowy mountains and the Rożnów Reservoir around
-// Limanowa, in the landslide-prone Polish Carpathians.
+// Our study area: a rectangle around Mandi, Himachal Pradesh, India.
 // ee.Geometry.Rectangle([west, south, east, north]) in degrees.
 // ► To study your own area, change these four numbers.
-var aoi = ee.Geometry.Rectangle([20.25, 49.60, 20.80, 49.85]);
+var aoi = ee.Geometry.Rectangle([76.75, 31.45, 77.25, 31.85]);
 
 // Zoom to the study area.
 Map.centerObject(aoi, 10);
@@ -52,7 +51,7 @@ print('DEM pixel size (m):', dem.projection().nominalScale());
 var elevation = dem.select('elevation');
 
 // Add it to the map in greyscale (no palette → black to white).
-Map.addLayer(elevation, {min: 250, max: 1150}, 'Elevation (grey)', false);
+Map.addLayer(elevation, {min: 500, max: 4000}, 'Elevation (grey)', false);
 
 
 // =============================================================================
@@ -84,10 +83,9 @@ var s2Clear = s2Aoi2024.filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 10));
 print('...of which less than 10 % cloudy:', s2Clear.size());
 
 // ---- Filter by MONTH regardless of year ------------------------------------
-// ee.Filter.calendarRange(6, 8, 'month') keeps images from June to August:
-// summer, when trees are in leaf and there is no snow.
-var s2Summer = s2Clear.filter(ee.Filter.calendarRange(6, 8, 'month'));
-print('...and taken in Jun–Aug:', s2Summer.size());
+// ee.Filter.calendarRange(10, 12, 'month') keeps images from October to December.
+var s2PostMonsoon = s2Clear.filter(ee.Filter.calendarRange(10, 12, 'month'));
+print('...and taken in Oct–Dec:', s2PostMonsoon.size());
 
 // ---- All filters in one chain (this is how you normally write it) -----------
 var s2Filtered = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED') // start with all images
@@ -160,8 +158,8 @@ var trueColour = {bands: ['B4', 'B3', 'B2'], min: 0, max: 3000};
 // FALSE COLOUR (NIR): vegetation appears red. Great for crops and forests.
 var falseColour = {bands: ['B8', 'B4', 'B3'], min: 0, max: 4000};
 
-// SWIR COMPOSITE: SWIR-2, NIR, red. Separates water (dark), bare soil (pink-brown
-// — e.g. fresh landslide scars, ploughed fields) and vegetation (green) very clearly.
+// SWIR COMPOSITE: SWIR-2, NIR, red. Separates water (dark), bare soil, burnt
+// areas and vegetation (green) very clearly.
 var swirColour = {bands: ['B12', 'B8', 'B4'], min: 0, max: 4000};
 
 // "gamma" brightens (>1) or darkens (<1) the mid-tones.
@@ -237,9 +235,9 @@ print('Dates of the 5 clearest images of 2024:',
         return ee.Date(t).format('YYYY-MM-dd');
       }));
 
-// Filter images that cover a single POINT (e.g. a landslide site).
-var overKlodne = s2Filtered.filterBounds(ee.Geometry.Point([20.5661, 49.6850]));
-print('Clear 2024 images over Kłodne:', overKlodne.size());
+// Filter images that cover a single POINT (e.g. a field site).
+var overLake = s2Filtered.filterBounds(ee.Geometry.Point([77.1009, 31.7543]));
+print('Clear 2024 images over Prashar Lake:', overLake.size());
 
 
 /*******************************************************************************
@@ -247,8 +245,7 @@ print('Clear 2024 images over Kłodne:', overKlodne.size());
  *   1. Change the date range to 2019 and compare the number of images.
  *   2. Change the cloud filter to 30 %. How many more images do you get?
  *   3. Use ee.Filter.calendarRange(3, 5, 'month') to keep only Mar–May images and
- *      make a median composite. Compare it with a Jun–Aug composite. Where do
- *      fields look bare in spring but green in summer?
+ *      make a median composite. Compare it with the Oct–Dec composite.
  *   4. Load Landsat 9 instead: 'LANDSAT/LC09/C02/T1_L2' and filter with the
  *      property 'CLOUD_COVER'. Print the band names — they differ from Sentinel-2!
  ******************************************************************************/

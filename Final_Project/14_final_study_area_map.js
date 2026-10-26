@@ -1,23 +1,29 @@
 /*******************************************************************************
- * GOOGLE EARTH ENGINE FOR BEGINNERS
- * FINAL PROJECT · Script 14 — Maps of YOUR study area
+ * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
+ * FINAL PROJECT · Script 14 — Landslide maps of YOUR study area
  * -----------------------------------------------------------------------------
  * This template brings the whole course together. Change the SETTINGS in
  * PART 0 to your own study area and years, press Run, and you get:
  *
- *   MAP LAYERS   true colour · false colour · elevation with hillshade · NDVI ·
- *                land-cover classification · NDVI change
- *   MAP LAYOUT   title · legend · NDVI colour bar · location (inset) map ·
+ *   MAP LAYERS   true colour · false colour · elevation with hillshade ·
+ *                slope classes · NDVI · NDVI change · land-cover classification ·
+ *                a simple landslide-susceptibility index · (your landslide inventory)
+ *   MAP LAYOUT   title · legends · NDVI colour bar · location (inset) map ·
  *                north arrow · scale bar · summary statistics side panel
- *   OUTPUTS      PNG map images (download links) · GeoTIFFs and CSV to Google Drive
+ *   OUTPUTS      PNG map images (download links) · GeoTIFFs and CSVs to Google Drive
  *
  * Final-project checklist for students:
- *   [ ] Your own study area (shapefile asset or drawn polygon)
- *   [ ] A cloud-free composite and at least two indices
+ *   [ ] Your own study area in Poland (shapefile asset or drawn polygon)
+ *   [ ] A cloud-free composite, at least two indices, and a slope map
  *   [ ] A land-cover classification with an accuracy assessment
  *   [ ] A change analysis between two years
+ *   [ ] A landslide-susceptibility map (this simple index, or Script 12 PART 12)
  *   [ ] Finished maps with title, legend, scale, north arrow and data sources
- *   [ ] A short report: methods, maps, area table, accuracy, discussion
+ *   [ ] A short report: methods, maps, area tables, accuracy, discussion
+ *
+ * IMPORTANT: the susceptibility index here is a TEACHING tool, not an official
+ * hazard map. Official landslide maps for Poland come from the SOPO project of
+ * the Polish Geological Institute (PIG-PIB).
  ******************************************************************************/
 
 
@@ -29,10 +35,10 @@
 var AUTHOR = 'Student name';
 
 // ► The map title.
-var MAP_TITLE = 'Land cover and vegetation of the Mandi study area';
+var MAP_TITLE = 'Landslide-prone slopes of the Limanowa–Rożnów area';
 
 // ► Your study area. Option 1: a rectangle [west, south, east, north].
-var aoi = ee.Geometry.Rectangle([76.75, 31.45, 77.25, 31.85]);
+var aoi = ee.Geometry.Rectangle([20.25, 49.60, 20.80, 49.85]);
 
 // ► Option 2: your uploaded shapefile — un-comment the next line and edit the path.
 // var aoi = ee.FeatureCollection('projects/YOUR-PROJECT-ID/assets/study_area').geometry();
@@ -42,9 +48,9 @@ var aoi = ee.Geometry.Rectangle([76.75, 31.45, 77.25, 31.85]);
 // ► The main year to map.
 var YEAR = 2024;
 
-// ► The first and last month of the season used for the composite (10–12 = Oct–Dec).
-var START_MONTH = 10;
-var END_MONTH = 12;
+// ► The first and last month of the season used for the composite (6–8 = Jun–Aug).
+var START_MONTH = 6;
+var END_MONTH = 8;
 
 // ► An earlier year for the change analysis (the same season is used).
 var BASE_YEAR = 2019;
@@ -54,6 +60,14 @@ var classNames = ['Water', 'Forest', 'Shrub & grass', 'Cropland', 'Built-up', 'B
 
 // ► One colour per class, in the same order as the names.
 var classPalette = ['1f78b4', '1b7837', 'a6d96a', 'fdae61', 'e31a1c', 'bdbdbd'];
+
+// ► Susceptibility index weights (they must add up to 1).
+var SLOPE_WEIGHT = 0.6;       // how much slope counts
+var LANDCOVER_WEIGHT = 0.4;   // how much land cover counts
+
+// ► Your landslide inventory (polygons, Script 06 step D). false = not used.
+var USE_LANDSLIDE_INVENTORY = false;
+var LANDSLIDE_ASSET = 'projects/YOUR-PROJECT-ID/assets/landslides';
 
 
 // =============================================================================
@@ -142,8 +156,8 @@ var predictors = composite
   .addBands(ndvi)                                 // + NDVI
   .addBands(ndwi)                                 // + NDWI
   .addBands(ndbi)                                 // + NDBI
-  .addBands(dem.toFloat().divide(4000).rename('elev')) // + elevation ÷ 4000 (as decimals)
-  .addBands(slope.divide(90).rename('slope'));    // + slope ÷ 90
+  .addBands(dem.toFloat().divide(1500).rename('elev')) // + elevation ÷ 1500 (as decimals)
+  .addBands(slope.divide(60).rename('slope'));    // + slope ÷ 60
 
 // The names of all predictor bands (the classifier needs this list).
 var bands = predictors.bandNames();
@@ -185,12 +199,61 @@ var landCover = predictors.classify(classifier)                        // classi
   .clip(aoi)                                                           // cut to AOI
   .rename('landcover');                                                // band name
 
-// Confusion matrix of the TEST points (used for accuracy in PART 6).
+// Confusion matrix of the TEST points (used for accuracy in PART 7).
 var errorMatrix = testSet.classify(classifier).errorMatrix('landcover', 'classification');
 
 
 // =============================================================================
-// PART 4 — Map layers
+// PART 4 — Slope classes and a simple landslide-susceptibility index
+// =============================================================================
+
+// Slope classes: 1 = 0–5°, 2 = 5–10°, 3 = 10–15°, 4 = 15–25°, 5 = over 25°.
+var slopeClasses = ee.Image(1)
+  .where(slope.gte(5), 2)                          // 5–10°
+  .where(slope.gte(10), 3)                         // 10–15°
+  .where(slope.gte(15), 4)                         // 15–25°
+  .where(slope.gte(25), 5)                         // over 25°
+  .updateMask(slope.mask())                        // same no-data areas as the slope
+  .clip(aoi)                                       // cut to the AOI
+  .rename('slope_class');                          // band name
+var slopeClassNames = ['0–5°', '5–10°', '10–15°', '15–25°', '> 25°'];
+var slopeClassPalette = ['ffffcc', 'fed976', 'fd8d3c', 'e31a1c', '800026'];
+
+// SLOPE SCORE 0–1: flat land scores 0, slopes over 25° score 1.
+// .toFloat() keeps the decimals (whole ÷ whole would give only 0 or 1).
+var slopeScore = slopeClasses.subtract(1).toFloat().divide(4);
+
+// LAND-COVER SCORE 0–1. Forest roots hold the soil, so forest scores low;
+// fields, pasture and bare ground score high; water is excluded.
+//   our class:  0 water, 1 forest, 2 shrub & grass, 3 cropland, 4 built-up, 5 bare
+var landCoverScore = landCover.remap([0, 1, 2, 3, 4, 5],     // our class codes
+                                     [0, 1, 2, 3, 2, 3])     // score 0–3
+                              .toFloat()                     // as decimals
+                              .divide(3);                    // → 0–1
+
+// The index: a weighted sum of the two scores (0 = least, 1 = most susceptible).
+var susIndex = slopeScore.multiply(SLOPE_WEIGHT)
+  .add(landCoverScore.multiply(LANDCOVER_WEIGHT))
+  .updateMask(landCover.neq(0))                    // leave out water
+  .rename('sus_index');
+
+// Four classes: 1 low (< 0.25), 2 moderate, 3 high, 4 very high (≥ 0.75).
+var susClasses = ee.Image(1)
+  .where(susIndex.gte(0.25), 2)                    // moderate
+  .where(susIndex.gte(0.5), 3)                     // high
+  .where(susIndex.gte(0.75), 4)                    // very high
+  .updateMask(susIndex.mask())                     // same no-data areas as the index
+  .rename('sus_class');                            // band name
+var susClassNames = ['Low', 'Moderate', 'High', 'Very high'];
+var susPalette = ['1a9850', 'ffffbf', 'fdae61', 'd7191c'];
+
+// The landslide inventory, if you have one (an empty collection if not).
+var landslides = USE_LANDSLIDE_INVENTORY ? ee.FeatureCollection(LANDSLIDE_ASSET)
+                                         : ee.FeatureCollection([]);
+
+
+// =============================================================================
+// PART 5 — Map layers
 // =============================================================================
 
 // Satellite imagery as the background map.
@@ -205,17 +268,21 @@ var rgbVis = {bands: ['B4', 'B3', 'B2'], min: 0, max: 0.3, gamma: 1.2};
 // False colour: NIR, red, green (vegetation appears red).
 var fccVis = {bands: ['B8', 'B4', 'B3'], min: 0, max: 0.45};
 
-// Elevation colours from green lowlands to white peaks.
-var demVis = {min: 500, max: 4000, palette: ['006837', '78c679', 'ffffbf', 'd7b26b', '8c510a', 'ffffff']};
+// Elevation colours from green valleys to white summits.
+var demVis = {min: 250, max: 1150, palette: ['006837', '78c679', 'ffffbf', 'd7b26b', '8c510a', 'ffffff']};
 
 // NDVI colours from red (no vegetation) to dark green (dense vegetation).
-var ndviVis = {min: 0, max: 0.8, palette: ['a50026', 'f46d43', 'fee08b', 'd9ef8b', '66bd63', '006837']};
+var ndviVis = {min: 0, max: 0.9, palette: ['a50026', 'f46d43', 'fee08b', 'd9ef8b', '66bd63', '006837']};
 
 // NDVI change colours: red = loss, white = no change, green = gain.
 var changeVis = {min: -0.3, max: 0.3, palette: ['b2182b', 'f7f7f7', '1a9850']};
 
 // Land-cover colours (one per class).
 var lcVis = {min: 0, max: 5, palette: classPalette};
+
+// Slope-class and susceptibility colours.
+var slopeVis = {min: 1, max: 5, palette: slopeClassPalette};
+var susVis = {min: 1, max: 4, palette: susPalette};
 
 // Elevation colours shaded by the hillshade:
 //   .visualize() turns the DEM into an RGB picture (0–255),
@@ -231,21 +298,26 @@ var outline = ee.Image().byte().paint({
   width: 3                                                    // 3-pixel line
 });
 
-// Add the layers from bottom to top. Only the land-cover map is switched on.
+// Add the layers from bottom to top. Only the susceptibility map is switched on.
 Map.addLayer(composite, rgbVis, '1. True colour ' + YEAR, false);                       // layer 1
 Map.addLayer(composite, fccVis, '2. False colour (NIR) ' + YEAR, false);                // layer 2
 Map.addLayer(shadedRelief, {min: 0, max: 255}, '3. Elevation with hillshade', false);   // layer 3
-Map.addLayer(ndvi, ndviVis, '4. NDVI ' + YEAR, false);                                   // layer 4
-Map.addLayer(dNDVI, changeVis, '5. NDVI change ' + BASE_YEAR + '–' + YEAR, false);       // layer 5
-Map.addLayer(landCover, lcVis, '6. Land cover ' + YEAR);                                 // layer 6
+Map.addLayer(slopeClasses, slopeVis, '4. Slope classes', false);                         // layer 4
+Map.addLayer(ndvi, ndviVis, '5. NDVI ' + YEAR, false);                                   // layer 5
+Map.addLayer(dNDVI, changeVis, '6. NDVI change ' + BASE_YEAR + '–' + YEAR, false);       // layer 6
+Map.addLayer(landCover, lcVis, '7. Land cover ' + YEAR, false);                          // layer 7
+Map.addLayer(susClasses, susVis, '8. Landslide susceptibility (teaching index)');        // layer 8
+Map.addLayer(landslides.style({color: '000000', fillColor: '00000000', width: 1}), {},
+             'Landslide inventory', USE_LANDSLIDE_INVENTORY);                            // your landslides
 Map.addLayer(outline, {palette: ['ffff00']}, 'Study area boundary');                     // outline on top
 
 
 // =============================================================================
-// PART 5 — Map layout elements
+// PART 6 — Map layout elements
 // =============================================================================
 
 // ---- Title ------------------------------------------------------------------
+
 // The main title text.
 var titleLabel = ui.Label(MAP_TITLE, {fontSize: '20px', fontWeight: 'bold', margin: '2px 8px'});
 
@@ -264,24 +336,32 @@ var titlePanel = ui.Panel({
 // Put the title box on the map.
 Map.add(titlePanel);
 
-// ---- Land-cover legend --------------------------------------------------------
+// ---- Legend -------------------------------------------------------------------
+
 // A panel in the bottom-left corner of the map.
 var legend = ui.Panel({style: {position: 'bottom-left', padding: '8px 12px'}});
 
-// The legend heading.
-legend.add(ui.Label('Land cover ' + YEAR, {fontWeight: 'bold', fontSize: '14px', margin: '0 0 6px 0'}));
+// A function that adds a heading and one coloured row per class to the legend.
+function addLegendSection(heading, names, palette) {
+  // The heading.
+  legend.add(ui.Label(heading, {fontWeight: 'bold', fontSize: '14px', margin: '6px 0 4px 0'}));
+  // One row per class: a coloured square and the class name.
+  names.forEach(function(name, i) {
+    // The coloured square (an empty label with a background colour).
+    var box = ui.Label('', {backgroundColor: '#' + palette[i], padding: '8px', margin: '0 6px 4px 0'});
+    // The class name.
+    var text = ui.Label(name, {margin: '0 0 4px 0'});
+    // Put the square and the name side by side, and add the row to the legend.
+    legend.add(ui.Panel([box, text], ui.Panel.Layout.Flow('horizontal')));
+  });
+}
 
-// One row per class: a coloured square and the class name.
-classNames.forEach(function(name, i) {
-  // The coloured square (an empty label with a background colour).
-  var box = ui.Label('', {backgroundColor: '#' + classPalette[i], padding: '8px', margin: '0 6px 4px 0'});
-  // The class name.
-  var text = ui.Label(name, {margin: '0 0 4px 0'});
-  // Put the square and the name side by side, and add the row to the legend.
-  legend.add(ui.Panel([box, text], ui.Panel.Layout.Flow('horizontal')));
-});
+// The two class legends.
+addLegendSection('Landslide susceptibility', susClassNames, susPalette);
+addLegendSection('Land cover ' + YEAR, classNames, classPalette);
 
 // ---- NDVI colour bar ------------------------------------------------------------
+
 // A tiny image whose values run from 0 (left) to 1 (right), coloured with the NDVI palette.
 var colourBar = ui.Thumbnail({
   image: ee.Image.pixelLonLat().select(0),     // each pixel's x-position becomes its value
@@ -312,14 +392,18 @@ legend.add(colourBar);
 legend.add(ui.Panel([barMin, barMax], ui.Panel.Layout.Flow('horizontal')));
 
 // ---- Data sources ---------------------------------------------------------------
-// A small grey line naming the datasets used (always cite your data!).
+
+// Small grey lines naming the datasets used (always cite your data!).
 legend.add(ui.Label('Data: ESA Sentinel-2, NASA SRTM, ESA WorldCover (training)',
                     {fontSize: '10px', color: '#666666', margin: '8px 0 0 0'}));
+legend.add(ui.Label('Susceptibility: simple teaching index, not an official hazard map',
+                    {fontSize: '10px', color: '#666666', margin: '2px 0 0 0'}));
 
 // Put the finished legend on the map.
 Map.add(legend);
 
 // ---- North arrow ------------------------------------------------------------------
+
 // A label with an arrow and "N"; whiteSpace 'pre' keeps the line break (\n).
 var northArrow = ui.Label('▲\nN', {
   position: 'top-right',     // top-right corner of the map
@@ -334,17 +418,19 @@ var northArrow = ui.Label('▲\nN', {
 Map.add(northArrow);
 
 // ---- Scale bar --------------------------------------------------------------------
+
 // The Code Editor map has a built-in scale bar (bottom-right); make sure it is shown.
 Map.setControlVisibility({scaleControl: true});
 
 // ---- Location (inset) map ------------------------------------------------------------
+
 // A box of about 600 × 600 km centred on the AOI (300 km buffer → its bounding box).
 var regionBox = aoi.centroid(100).buffer(300000).bounds();
 
 // A background picture of the region: elevation in soft colours.
 var insetBackground = ee.Image('USGS/SRTMGL1_003').visualize({
   min: 0,                                                       // sea level
-  max: 5000,                                                    // high mountains
+  max: 2000,                                                    // the highest Carpathian peaks
   palette: ['c7e9c0', '74c476', 'fdd49e', 'd7b26b', 'ffffff']   // green → brown → white
 });
 
@@ -363,15 +449,14 @@ var insetThumb = ui.Thumbnail({
 // Put the inset on the map.
 Map.add(insetThumb);
 
-// NOTE: SRTM covers 60 °N – 56 °S. If you add national borders to a published
-// map, use your country's official boundary data.
+// NOTE: for published maps of Poland use official boundaries (PRG, GUGiK).
 
 
 // =============================================================================
-// PART 6 — Summary statistics side panel
+// PART 7 — Summary statistics side panel
 // =============================================================================
 
-// A panel 340 pixels wide for numbers and a chart.
+// A panel 340 pixels wide for numbers and charts.
 var sidePanel = ui.Panel({style: {width: '340px', padding: '8px'}});
 
 // The panel heading.
@@ -381,7 +466,8 @@ sidePanel.add(ui.Label('Study area summary', {fontWeight: 'bold', fontSize: '16p
 ui.root.insert(0, sidePanel);
 
 // AOI area: computed on the server; .evaluate() brings the number back without freezing.
-aoi.area(10).divide(1e6).evaluate(function(value) {
+var aoiKm2 = aoi.area(10).divide(1e6);
+aoiKm2.evaluate(function(value) {
   // value is now a normal number; .toFixed(1) rounds it to 1 decimal place.
   sidePanel.add(ui.Label('Study area: ' + value.toFixed(1) + ' km²'));
 });
@@ -399,6 +485,18 @@ dem.reduceRegion({reducer: ee.Reducer.minMax(), geometry: aoi, scale: 30, maxPix
     sidePanel.add(ui.Label('Elevation: ' + d.elevation_min + ' – ' + d.elevation_max + ' m')); // show them
   });
 
+// Area steeper than 15° and its share of the AOI.
+ee.List([areaKm2(slope.gt(15), 30), aoiKm2]).evaluate(function(v) {
+  // v[0] = steep area, v[1] = AOI area.
+  sidePanel.add(ui.Label('Slopes > 15°: ' + v[0].toFixed(1) + ' km² (' + (100 * v[0] / v[1]).toFixed(1) + ' %)'));
+});
+
+// Share of the AOI in the high and very high susceptibility classes.
+ee.List([areaKm2(susClasses.gte(3), 30), aoiKm2]).evaluate(function(v) {
+  // v[0] = high + very high area, v[1] = AOI area.
+  sidePanel.add(ui.Label('High + very high susceptibility: ' + (100 * v[0] / v[1]).toFixed(1) + ' % of the area'));
+});
+
 // Overall accuracy of the classification (test points).
 errorMatrix.accuracy().evaluate(function(oa) {
   // Convert 0–1 into a percentage.
@@ -411,13 +509,27 @@ errorMatrix.kappa().evaluate(function(k) {
   sidePanel.add(ui.Label('Kappa: ' + k.toFixed(3)));
 });
 
-// Vegetation loss: NDVI above 0.4 in the base year AND a drop of more than 0.2.
-var vegLossMask = ndviBase.gt(0.4).and(dNDVI.lt(-0.2));
+// Vegetation loss on slopes: NDVI above 0.4 in the base year, a drop of more
+// than 0.2, and a slope steeper than 10° (candidate landslides, logging, …).
+var vegLossMask = ndviBase.gt(0.4).and(dNDVI.lt(-0.2)).and(slope.gt(10));
 
 // Its area in km², fetched and shown in the panel.
 areaKm2(vegLossMask, 10).evaluate(function(v) {
-  sidePanel.add(ui.Label('Vegetation loss ' + BASE_YEAR + '–' + YEAR + ': ' + v.toFixed(2) + ' km²'));
+  sidePanel.add(ui.Label('Vegetation loss on slopes ' + BASE_YEAR + '–' + YEAR + ': ' + v.toFixed(2) + ' km²'));
 });
+
+// CHECK THE INDEX against your landslides: which share of the landslide area
+// falls in the high and very high classes? (A good index puts most of it there.)
+if (USE_LANDSLIDE_INVENTORY) {
+  // 1 inside landslide polygons, 0 elsewhere.
+  var landslideMask = ee.Image(0).paint(landslides, 1).clip(aoi);
+  // Landslide area in total, and landslide area in classes 3–4.
+  ee.List([areaKm2(landslideMask, 10), areaKm2(landslideMask.and(susClasses.gte(3)), 10)])
+    .evaluate(function(v) {
+      sidePanel.add(ui.Label('Landslide area in high + very high classes: ' +
+                             (100 * v[1] / v[0]).toFixed(1) + ' %'));
+    });
+}
 
 // Area of each land-cover class: sum pixel areas (km²) grouped by class code.
 var areaGroups = ee.Image.pixelArea().divide(1e6).addBands(landCover).reduceRegion({
@@ -441,8 +553,28 @@ var areaTable = ee.FeatureCollection(ee.List(areaGroups.get('groups')).map(funct
   });
 }));
 
-// A pie chart of the class areas.
-var pieChart = ui.Chart.feature.byFeature({
+// The same for the susceptibility classes (codes 1–4 → names at index code − 1).
+var susGroups = ee.Image.pixelArea().divide(1e6).addBands(susClasses).reduceRegion({
+  reducer: ee.Reducer.sum().group({groupField: 1, groupName: 'class'}),  // a sum per class
+  geometry: aoi,                                                         // in the AOI
+  scale: 30,                                                             // 30 m (the slope's pixel size)
+  maxPixels: 1e10                                                        // allow many pixels
+});
+var susTable = ee.FeatureCollection(ee.List(susGroups.get('groups')).map(function(item) {
+  // One {class, sum} dictionary.
+  var d = ee.Dictionary(item);
+  // The class code 1–4.
+  var code = ee.Number(d.get('class')).int();
+  // A table row.
+  return ee.Feature(null, {
+    class_code: code,                                           // e.g. 3
+    class_name: ee.List(susClassNames).get(code.subtract(1)),   // e.g. 'High'
+    area_km2: ee.Number(d.get('sum'))                           // area in km²
+  });
+}));
+
+// A pie chart of the land-cover areas.
+sidePanel.add(ui.Chart.feature.byFeature({
   features: areaTable,          // the table
   xProperty: 'class_name',      // slice labels
   yProperties: ['area_km2']     // slice sizes
@@ -450,26 +582,36 @@ var pieChart = ui.Chart.feature.byFeature({
   title: 'Land cover area (km²) ' + YEAR,   // chart title
   colors: classPalette,                     // same colours as the map
   legend: {position: 'right'}               // legend on the right
-});
+}));
 
-// Put the chart in the side panel.
-sidePanel.add(pieChart);
+// A column chart of the susceptibility-class areas.
+sidePanel.add(ui.Chart.feature.byFeature({
+  features: susTable,           // the table
+  xProperty: 'class_name',      // class names on the x-axis
+  yProperties: ['area_km2']     // areas on the y-axis
+}).setChartType('ColumnChart').setOptions({
+  title: 'Susceptibility class area (km²)', // chart title
+  colors: ['d7191c'],                       // bar colour
+  legend: {position: 'none'}                // no legend
+}));
 
 
 // =============================================================================
-// PART 7 — Outputs
+// PART 8 — Outputs
 // =============================================================================
 
-// ---- 7a. PNG pictures for your report (clickable links in the side panel) -----
+// ---- 8a. PNG pictures for your report (clickable links in the side panel) -----
+
 // The outline as a yellow RGB picture, to lay on top of every PNG.
 var outlineRgb = outline.visualize({palette: ['ffff00']});
 
 // A dictionary: picture name → RGB picture. .blend() puts the outline on top.
 var pngLayers = {
-  'True colour': composite.visualize(rgbVis).blend(outlineRgb),   // true colour
-  'NDVI': ndvi.visualize(ndviVis).blend(outlineRgb),               // NDVI
-  'Land cover': landCover.visualize(lcVis).blend(outlineRgb),      // classification
-  'Elevation': shadedRelief.blend(outlineRgb)                      // shaded relief
+  'True colour': composite.visualize(rgbVis).blend(outlineRgb),        // true colour
+  'Susceptibility': susClasses.visualize(susVis).blend(outlineRgb),    // susceptibility index
+  'Slope classes': slopeClasses.visualize(slopeVis).blend(outlineRgb), // slope classes
+  'Land cover': landCover.visualize(lcVis).blend(outlineRgb),          // classification
+  'Elevation': shadedRelief.blend(outlineRgb)                          // shaded relief
 };
 
 // A heading for the links.
@@ -484,7 +626,9 @@ Object.keys(pngLayers).forEach(function(name) {
   });
 });
 
-// ---- 7b. GeoTIFFs and tables to Google Drive (Tasks tab → RUN each one) -------
+// ---- 8b. GeoTIFFs and tables to Google Drive (Tasks tab → RUN each one) -------
+// All rasters use EPSG:2180 (PUWG 1992), Poland's official coordinate system.
+
 // True-colour picture (3 bands, 0–255) — opens directly in QGIS.
 Export.image.toDrive({
   image: composite.visualize(rgbVis),           // RGB picture
@@ -492,6 +636,7 @@ Export.image.toDrive({
   folder: 'GEE_final_project',                  // Drive folder
   region: aoi,                                  // area
   scale: 10,                                    // 10 m pixels
+  crs: 'EPSG:2180',                             // national coordinate system
   maxPixels: 1e10                               // allow large exports
 });
 
@@ -502,7 +647,19 @@ Export.image.toDrive({
   folder: 'GEE_final_project',                  // Drive folder
   region: aoi,                                  // area
   scale: 10,                                    // 10 m pixels
+  crs: 'EPSG:2180',                             // national coordinate system
   maxPixels: 1e10                               // allow large exports
+});
+
+// Susceptibility classes (1–4) and slope classes (1–5), two bands of whole numbers.
+Export.image.toDrive({
+  image: susClasses.addBands(slopeClasses).toByte(), // 2 bands
+  description: 'Final_Susceptibility_SlopeClasses',  // task / file name
+  folder: 'GEE_final_project',                       // Drive folder
+  region: aoi,                                       // area
+  scale: 30,                                         // the slope's 30 m pixels
+  crs: 'EPSG:2180',                                  // national coordinate system
+  maxPixels: 1e10                                    // allow large exports
 });
 
 // NDVI and NDVI change (two decimal bands).
@@ -512,6 +669,7 @@ Export.image.toDrive({
   folder: 'GEE_final_project',                                 // Drive folder
   region: aoi,                                                 // area
   scale: 10,                                                   // 10 m pixels
+  crs: 'EPSG:2180',                                            // national coordinate system
   maxPixels: 1e10                                              // allow large exports
 });
 
@@ -522,13 +680,21 @@ Export.image.toDrive({
   folder: 'GEE_final_project',                  // Drive folder
   region: aoi,                                  // area
   scale: 30,                                    // SRTM's 30 m pixels
+  crs: 'EPSG:2180',                             // national coordinate system
   maxPixels: 1e10                               // allow large exports
 });
 
-// The land-cover area table as a CSV spreadsheet.
+// The land-cover and susceptibility area tables as CSV spreadsheets.
 Export.table.toDrive({
   collection: areaTable,                                   // the table
   description: 'Final_LandCover_area_' + YEAR,             // task / file name
+  folder: 'GEE_final_project',                             // Drive folder
+  fileFormat: 'CSV',                                       // spreadsheet format
+  selectors: ['class_code', 'class_name', 'area_km2']      // columns in this order
+});
+Export.table.toDrive({
+  collection: susTable,                                    // the table
+  description: 'Final_Susceptibility_area',                // task / file name
   folder: 'GEE_final_project',                             // Drive folder
   fileFormat: 'CSV',                                       // spreadsheet format
   selectors: ['class_code', 'class_name', 'area_km2']      // columns in this order
@@ -550,12 +716,16 @@ Export.table.toDrive({
  *                   of the map area (switch on the layer you want first).
  *   Print-quality:  Run the GeoTIFF exports → open them in QGIS → Project →
  *                   New Print Layout → add map, grid, scale bar, north arrow,
- *                   legend, inset map and data sources.
+ *                   legend, inset map and data sources. Add a LiDAR hillshade
+ *                   from geoportal.gov.pl under your layers for a sharp relief.
  *
  * SUGGESTED REPORT OUTLINE
- *   1. Introduction and study area (with the location map)
- *   2. Data (satellites, dates, other datasets)
- *   3. Methods (cloud masking, composite, indices, classification, change)
- *   4. Results (maps, area table, accuracy, change statistics)
- *   5. Discussion (errors and limitations) and conclusion
+ *   1. Introduction and study area (with the location map; why landslides here?)
+ *   2. Data (satellites, dates, DEM, rainfall, landslide inventory if used)
+ *   3. Methods (cloud masking, composite, indices, slope, classification,
+ *      change, susceptibility index with its weights)
+ *   4. Results (maps, area tables, accuracy, change statistics, share of land in
+ *      each susceptibility class)
+ *   5. Discussion (errors and limitations: 30 m DEM, WorldCover training labels,
+ *      a simple index; comparison with the SOPO maps) and conclusion
  ******************************************************************************/

@@ -3,8 +3,6 @@
 This handout walks you through everything you need **before** you write your first line of code.
 No programming knowledge is needed.
 
-This edition of the course uses a **landslide study area in the Polish Carpathians** (section 5).
-
 ---
 
 ## 1. What is Google Earth Engine (GEE)?
@@ -31,15 +29,13 @@ in a script (for example `ee.Image`, `ee.ImageCollection`) lives **on the server
 ### When should you use GEE?
 
 **Good for**
-- Large areas (district, voivodeship, country, continent)
+- Large areas (district, state, country, continent)
 - Long time periods (years or decades of imagery)
 - Standard public datasets: Landsat, Sentinel-1/2, MODIS, DEMs, rainfall, land cover…
 - Repeatable workflows (run the same analysis for a new year with one change)
-- Screening large areas for landslide-prone slopes and for new bare scars after storms
 
 **Not ideal for**
 - Very small, very detailed jobs with your own drone or LiDAR data (desktop software may be easier)
-- Mapping the exact outline of each landslide (that needs LiDAR and field work)
 - Complex cartography / print layouts (export from GEE and finish in QGIS)
 - Workflows that need custom algorithms GEE doesn't provide
 
@@ -88,7 +84,7 @@ The word *Hello* should appear in the **Console** tab on the right.
 ### Left panel
 | Tab | What it is for |
 |---|---|
-| **Scripts** | Your saved scripts. Create a **repository** (e.g. `GEE_Course_Landslides`) and save each class script in it. The *Examples* folder has hundreds of official examples. |
+| **Scripts** | Your saved scripts. Create a **repository** (e.g. `GEE_Course`) and save each class script in it. The *Examples* folder has hundreds of official examples. |
 | **Docs** | The full list of every Earth Engine function with its arguments. Search here when you forget a function name. |
 | **Assets** | Your own uploaded data (shapefiles, CSVs, GeoTIFFs) and exported results. Click **NEW** to upload. |
 
@@ -118,14 +114,14 @@ Useful tricks:
   Each drawing becomes a variable listed in the **Imports** section at the top of your script.
 - **Layers** (top-right of the map): switch layers on/off, change transparency, and click the ⚙
   next to a layer to change its colour stretch interactively.
-- **Search bar** at the top: type a place name to fly there (try *Limanowa*), or a dataset name
+- **Search bar** at the top: type a place name to fly there, or a dataset name
   (e.g. *Sentinel-2*) to find it in the data catalog and click **Import**.
 
 ---
 
 ## 4. How to use the course scripts
 
-1. In the **Scripts** tab click **NEW → Repository** and name it `GEE_Course_Landslides`.
+1. In the **Scripts** tab click **NEW → Repository** and name it `GEE_Course`.
 2. For each class, click **NEW → File**, give it the script name (e.g. `01_hello_earth_engine`).
 3. Copy the whole `.js` file from this folder, paste it into the editor, **Save**, then **Run**.
 4. Read the comments (green text starting with `//`) from top to bottom while you run it.
@@ -133,43 +129,3 @@ Useful tricks:
 
 Every script starts with a **study area** called `aoi` (area of interest).
 To work on your own area, change only that one line (or draw a rectangle and use it instead).
-
----
-
-## 5. The study area: landslides in the Polish Carpathians
-
-Over 95 % of Poland's landslides are in the **Carpathians**, where soft, layered **flysch** rocks
-(sandstones and shales) and heavy rain make slopes slide. Every script uses the same rectangle:
-
-```js
-var aoi = ee.Geometry.Rectangle([20.25, 49.60, 20.80, 49.85]);
-```
-
-It covers about 40 × 28 km of the **Beskid Wyspowy** mountains and the **Rożnów Reservoir**
-in Małopolska (Lesser Poland), from about 265 m (the reservoir) to 1,170 m (Mogielica).
-
-| Place | Longitude, latitude | Why it is in the course |
-|---|---|---|
-| Limanowa | 20.4228, 49.7064 | Main town; district seat |
-| Kłodne | 20.5661, 49.6850 | Village hit by a large landslide that started on **1 June 2010** |
-| Rożnów Reservoir | 20.7144, 49.7322 | Dam lake on the Dunajec; water level changes |
-| Mogielica | 20.2767, 49.6552 | Highest summit (1,170 m); forested slopes |
-| Nowy Sącz | 20.7022, 49.6203 | City on the Dunajec at the south edge |
-
-Coordinates are approximate (village or town centres). Always check a point with the
-**Inspector** before you use it for analysis.
-
-**May–June 2010.** Weeks of very heavy rain caused floods across southern Poland and started
-or reactivated many landslides in the Carpathians, including the Kłodne landslide on the slope of
-the Kleń ridge. Scripts 11 and 13 look at this event.
-
-**Polish data you can add as assets (Script 06)**
-- **Landslide inventory:** the SOPO system (*System Osłony Przeciwosuwiskowej*) run by the Polish
-  Geological Institute (PIG-PIB) maps landslides at 1:10 000. View it on the PIG-PIB geoportal;
-  the data are made available through the institute's Central Geological Archive.
-- **LiDAR elevation model (1 m):** the national geoportal (geoportal.gov.pl, GUGiK) offers
-  high-resolution elevation models. Hillshades from LiDAR show landslide scarps far better than
-  the 30 m global DEMs.
-- **Official boundaries:** the national register of boundaries (PRG) from GUGiK.
-
-Check each provider's terms of use before you upload or share their data.

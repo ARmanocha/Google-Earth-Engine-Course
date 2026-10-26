@@ -1,31 +1,26 @@
 /*******************************************************************************
- * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
+ * GOOGLE EARTH ENGINE FOR BEGINNERS
  * Module 2 · Script 05 — A tour of the Earth Engine Data Catalog
  * -----------------------------------------------------------------------------
  * The catalog (https://developers.google.com/earth-engine/datasets) has 1000+
- * datasets. This script loads the most useful ones for landslide studies in
- * Poland, one by one. Each section is independent: every layer is added
- * switched OFF so the map stays fast — tick the layer in the Layers menu.
+ * datasets. This script loads the most useful ones for students, one by one.
+ * Each section is independent: every layer is added switched OFF so the map
+ * stays fast — tick the layer in the Layers menu to look at it.
  *
  * DATASET               | ID in Earth Engine                      | Pixel | Since
  * ----------------------|-----------------------------------------|-------|------
  * Landsat 8 / 9         | LANDSAT/LC08(LC09)/C02/T1_L2            | 30 m  | 2013/2021
- * Landsat 5 (history)   | LANDSAT/LT05/C02/T1_L2                  | 30 m  | 1984–2012
  * Sentinel-2            | COPERNICUS/S2_SR_HARMONIZED             | 10 m  | 2017
  * Sentinel-1 (radar)    | COPERNICUS/S1_GRD                       | 10 m  | 2014
  * MODIS vegetation      | MODIS/061/MOD13Q1                       | 250 m | 2000
  * MODIS temperature     | MODIS/061/MOD11A2                       | 1 km  | 2000
  * SRTM DEM              | USGS/SRTMGL1_003                        | 30 m  | 2000
  * Copernicus DEM        | COPERNICUS/DEM/GLO30                    | 30 m  | 2011–15
- * ERA5-Land daily       | ECMWF/ERA5_LAND/DAILY_AGGR              | ~11 km| 1950
- * ERA5-Land monthly     | ECMWF/ERA5_LAND/MONTHLY_AGGR            | ~11 km| 1950
+ * CHIRPS rainfall       | UCSB-CHG/CHIRPS/DAILY                   | ~5 km | 1981
+ * ERA5-Land climate     | ECMWF/ERA5_LAND/MONTHLY_AGGR            | ~11 km| 1950
  * ESA WorldCover        | ESA/WorldCover/v200                     | 10 m  | 2021
- * CORINE Land Cover     | COPERNICUS/CORINE/V20/100m/2018         | 100 m | 2018
  * Dynamic World         | GOOGLE/DYNAMICWORLD/V1                  | 10 m  | 2015
  * JRC Surface Water     | JRC/GSW1_4/GlobalSurfaceWater           | 30 m  | 1984–2021
- *
- * NOTE: the popular CHIRPS rainfall dataset only covers 50 °S – 50 °N, so it
- * misses most of Poland. We use ERA5-Land for rainfall instead.
  *
  * HOW TO FIND A DATASET YOURSELF
  *   • Type its name in the search bar at the top of the Code Editor and click it.
@@ -38,8 +33,8 @@
 // PART 0 — Study area and dates
 // =============================================================================
 
-// Study area rectangle [west, south, east, north]: Limanowa and the Rożnów Reservoir.
-var aoi = ee.Geometry.Rectangle([20.25, 49.60, 20.80, 49.85]);
+// Study area rectangle [west, south, east, north].
+var aoi = ee.Geometry.Rectangle([76.75, 31.45, 77.25, 31.85]);
 
 // Zoom to it.
 Map.centerObject(aoi, 10);
@@ -84,32 +79,30 @@ Map.addLayer(landsatComposite, {bands: ['SR_B4', 'SR_B3', 'SR_B2'], min: 0, max:
 // Older Landsat for history: Landsat 5 (1984–2012) 'LANDSAT/LT05/C02/T1_L2' and
 // Landsat 7 (1999–) 'LANDSAT/LE07/C02/T1_L2'. Their bands are numbered differently
 // (red = SR_B3, NIR = SR_B4) — always check the catalog page!
-// Landsat 5 is the only good 30 m archive for the landslides of 2010 (Script 13).
 
 
 // =============================================================================
 // PART 2 — SENTINEL-2 (ESA, 10 m, every ~5 days)
 // =============================================================================
 
-// Load, filter and composite Sentinel-2 surface reflectance for summer 2024.
+// Load, filter and composite Sentinel-2 surface reflectance.
 var s2Composite = ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
   .filterBounds(aoi)                                         // our area
-  .filterDate('2024-06-01', '2024-09-01')                    // June–August 2024
-  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))       // fairly clear images
+  .filterDate(start, end)                                    // 2024
+  .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 10))       // mostly clear images
   .median()                                                  // median composite
   .clip(aoi);                                                // cut to AOI
 
 // Values are reflectance × 10000, so the stretch is 0–3000.
 Map.addLayer(s2Composite, {bands: ['B4', 'B3', 'B2'], min: 0, max: 3000},
-             'Sentinel-2 true colour (summer 2024)', false);
+             'Sentinel-2 true colour (2024)', false);
 
 
 // =============================================================================
 // PART 3 — SENTINEL-1 (ESA radar, 10 m, sees through clouds, day and night)
 // =============================================================================
 
-// Radar is useful in Poland's often cloudy weather, when optical satellites
-// only see clouds.
+// Radar is useful in the monsoon when optical satellites only see clouds.
 var s1 = ee.ImageCollection('COPERNICUS/S1_GRD')
   .filterBounds(aoi)                                                   // our area
   .filterDate(start, end)                                              // 2024
@@ -123,7 +116,7 @@ var s1 = ee.ImageCollection('COPERNICUS/S1_GRD')
 print('Sentinel-1 images (2024):', s1.size());
 
 // Values are backscatter in decibels (dB), usually −25 (dark) to 0 (bright).
-// Water (e.g. the Rożnów Reservoir) is very dark (smooth surface); towns are very bright.
+// Water is very dark (smooth surface); towns are very bright.
 var s1Median = s1.median().clip(aoi);
 
 // Show VV in grey.
@@ -133,12 +126,7 @@ Map.addLayer(s1Median.select('VV'), {min: -25, max: 0}, 'Sentinel-1 VV (dB)', fa
 Map.addLayer(s1Median, {bands: ['VV', 'VH', 'VV'], min: [-20, -25, -20], max: [0, -5, 0]},
              'Sentinel-1 VV/VH composite', false);
 
-// NOTES on radar and landslides:
-//   • On steep slopes radar has distortions (layover and shadow).
-//   • Slow landslide movement (mm–cm per year) is measured with radar
-//     INTERFEROMETRY (InSAR). That needs the radar PHASE, which this GRD dataset
-//     does not contain — it is done in other software (e.g. ESA SNAP) or taken
-//     from the European Ground Motion Service.
+// NOTE: In mountains radar has distortions (layover and shadow) on steep slopes.
 
 
 // =============================================================================
@@ -168,15 +156,15 @@ var modisLst = ee.ImageCollection('MODIS/061/MOD11A2')
 var lstCelsius = modisLst.mean().multiply(0.02).subtract(273.15).clip(aoi);
 
 // Show it from cold (blue) to hot (red).
-Map.addLayer(lstCelsius, {min: 0, max: 30, palette: ['040274', '0602ff', '30c8e2', 'fff705', 'ff0000']},
+Map.addLayer(lstCelsius, {min: 0, max: 40, palette: ['040274', '0602ff', '30c8e2', 'fff705', 'ff0000']},
              'MODIS daytime LST 2024 (°C)', false);
 
 
 // =============================================================================
-// PART 5 — DIGITAL ELEVATION MODELS and terrain (the basis of landslide work)
+// PART 5 — DIGITAL ELEVATION MODELS and terrain
 // =============================================================================
 
-// SRTM: a single global image (60 °N to 56 °S — all of Poland is covered).
+// SRTM: a single global image (60 °N to 56 °S).
 var srtm = ee.Image('USGS/SRTMGL1_003').clip(aoi);
 
 // Copernicus GLO-30: stored as many tiles (an ImageCollection) → mosaic them.
@@ -192,61 +180,49 @@ var copDem = copDemCollection.select('DEM').mosaic().setDefaultProjection(copDem
 // A palette for elevation.
 var demPalette = ['006837', '78c679', 'ffffbf', 'd7b26b', '8c510a', 'ffffff'];
 
-// Show both DEMs (this area spans about 265 m to 1,170 m).
-Map.addLayer(srtm, {min: 250, max: 1150, palette: demPalette}, 'SRTM elevation', false);
-Map.addLayer(copDem, {min: 250, max: 1150, palette: demPalette}, 'Copernicus DEM elevation', false);
+// Show both DEMs.
+Map.addLayer(srtm, {min: 500, max: 4000, palette: demPalette}, 'SRTM elevation', false);
+Map.addLayer(copDem, {min: 500, max: 4000, palette: demPalette}, 'Copernicus DEM elevation', false);
 
 // ee.Terrain functions compute terrain derivatives:
 var slope = ee.Terrain.slope(srtm);            // steepness in degrees (0 = flat)
 var aspect = ee.Terrain.aspect(srtm);          // direction the slope faces (0–360°, 0 = north)
 var hillshade = ee.Terrain.hillshade(srtm);    // shaded relief (sun from the NW by default)
 
-// Show them. Slope is the single most important factor for landslides.
+// Show them.
 Map.addLayer(hillshade, {min: 0, max: 255}, 'Hillshade', false);
-Map.addLayer(slope, {min: 0, max: 35, palette: ['ffffcc', 'fed976', 'fd8d3c', 'e31a1c', '800026']},
-             'Slope (°)', false);
+Map.addLayer(slope, {min: 0, max: 60, palette: ['white', 'yellow', 'red']}, 'Slope (°)', false);
 Map.addLayer(aspect, {min: 0, max: 360, palette: ['red', 'yellow', 'green', 'blue', 'red']},
              'Aspect (°)', false);
 
-// IMPORTANT: a 30 m DEM smooths away most landslides (many are only 50–200 m
-// across). Poland publishes free 1 m LiDAR elevation models on geoportal.gov.pl.
-// Upload a LiDAR DEM tile as an asset (Script 06) and its hillshade will show
-// landslide scarps, cracks and bulging toes very clearly.
-
 
 // =============================================================================
-// PART 6 — CLIMATE: rainfall and temperature (ERA5-Land)
+// PART 6 — CLIMATE: rainfall (CHIRPS) and temperature (ERA5-Land)
 // =============================================================================
 
-// ERA5-Land daily totals (reanalysis: a weather model fitted to observations).
-// The band 'total_precipitation_sum' is the day's rain + snow in METRES of water.
-var era5Daily = ee.ImageCollection('ECMWF/ERA5_LAND/DAILY_AGGR')
+// CHIRPS daily rainfall (mm/day), 1981–present, 50 °S to 50 °N.
+var chirps = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY')
   .filterDate(start, end)                 // 2024
-  .select('total_precipitation_sum');     // daily precipitation (m)
+  .select('precipitation');               // the only band
 
-// .sum() adds up all daily images → total for the year; × 1000 converts m → mm.
-var annualRain = era5Daily.sum().multiply(1000).clip(aoi);
+// .sum() adds up all daily images → total rainfall for the year (mm).
+var annualRain = chirps.sum().clip(aoi);
 
-// Show annual precipitation from dry (pale) to wet (dark blue).
-// ERA5-Land pixels are ~11 km, so expect only a few big squares over the AOI.
-Map.addLayer(annualRain, {min: 600, max: 1200, palette: ['ffffcc', 'a1dab4', '41b6c4', '2c7fb8', '253494']},
-             'ERA5-Land precipitation 2024 (mm)', false);
+// Show annual rainfall from dry (white) to wet (dark blue).
+Map.addLayer(annualRain, {min: 800, max: 2500, palette: ['ffffcc', 'a1dab4', '41b6c4', '2c7fb8', '253494']},
+             'CHIRPS rainfall 2024 (mm)', false);
 
-// ERA5-Land monthly averages for temperature, 1950–present.
-var era5Monthly = ee.ImageCollection('ECMWF/ERA5_LAND/MONTHLY_AGGR')
+// ERA5-Land monthly averages (reanalysis climate data), 1950–present.
+var era5 = ee.ImageCollection('ECMWF/ERA5_LAND/MONTHLY_AGGR')
   .filterDate(start, end)                 // 2024
   .select('temperature_2m');              // air temperature 2 m above ground (Kelvin)
 
 // Mean of the 12 months, converted from Kelvin to °C.
-var meanTemp = era5Monthly.mean().subtract(273.15).clip(aoi);
+var meanTemp = era5.mean().subtract(273.15).clip(aoi);
 
 // Show it.
-Map.addLayer(meanTemp, {min: 2, max: 12, palette: ['313695', '74add1', 'ffffbf', 'f46d43', 'a50026']},
+Map.addLayer(meanTemp, {min: 0, max: 25, palette: ['313695', '74add1', 'ffffbf', 'f46d43', 'a50026']},
              'ERA5-Land mean air temperature 2024 (°C)', false);
-
-// Why rainfall matters: most Carpathian landslides are TRIGGERED by long or
-// intense rain (and snowmelt) that saturates the soil. Script 11 charts the
-// rain before the landslides of May–June 2010.
 
 
 // =============================================================================
@@ -259,14 +235,6 @@ var worldCover = ee.ImageCollection('ESA/WorldCover/v200').first().clip(aoi);
 
 // WorldCover stores its own colours, so {} (no options) shows the official legend.
 Map.addLayer(worldCover, {}, 'ESA WorldCover 2021', false);
-
-// CORINE Land Cover 2018: the European land-cover map (100 m, 44 classes).
-// More detailed classes than WorldCover (e.g. "complex cultivation patterns",
-// "land principally occupied by agriculture with natural vegetation").
-var corine = ee.Image('COPERNICUS/CORINE/V20/100m/2018').select('landcover').clip(aoi);
-
-// CORINE also stores its official colours, so {} shows them.
-Map.addLayer(corine, {}, 'CORINE Land Cover 2018', false);
 
 // Dynamic World: near-real-time land cover for EVERY Sentinel-2 image.
 var dynamicWorld = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1')
@@ -299,7 +267,6 @@ Map.addLayer(dwMode, {min: 0, max: 8, palette: dwPalette}, 'Dynamic World 2024 (
 // =============================================================================
 
 // "occurrence" = % of time a pixel was water over 1984–2021.
-// Look at the edges of the Rożnów Reservoir: the water level goes up and down.
 var waterOccurrence = ee.Image('JRC/GSW1_4/GlobalSurfaceWater').select('occurrence').clip(aoi);
 
 // Show it from rarely water (light) to permanent water (dark blue).
@@ -314,16 +281,15 @@ Map.addLayer(waterOccurrence, {min: 0, max: 100, palette: ['ffffff', 'a6cee3', '
 // The quickest way to learn a dataset: print its first image and expand it.
 print('Example Landsat image (look at bands & properties):', landsat.first());
 print('Example Sentinel-1 image:', s1.first());
-print('Example ERA5-Land daily image:', era5Daily.first());
+print('Example CHIRPS image:', chirps.first());
 
 
 /*******************************************************************************
  * TRY IT YOURSELF
  *   1. Search the catalog for "VIIRS night" and add night-time lights for 2024.
- *   2. Make an ERA5-Land precipitation map for 15 May – 15 June 2010 only
- *      (the weeks of heavy rain before the Kłodne landslide).
- *   3. Compare the Landsat and Sentinel-2 composites when zoomed into Limanowa.
+ *   2. Make a CHIRPS rainfall map for the 2023 monsoon only (June–September).
+ *   3. Compare the Landsat and Sentinel-2 composites when zoomed into Mandi town.
  *      Which is sharper? Why?
- *   4. Use the Inspector to click on a few pixels and compare WorldCover,
- *      CORINE and Dynamic World. Do they agree? Which is most detailed?
+ *   4. Use the Inspector to click on a few pixels and compare WorldCover and
+ *      Dynamic World. Do they agree?
  ******************************************************************************/

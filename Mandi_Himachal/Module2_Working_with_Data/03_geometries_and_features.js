@@ -1,5 +1,5 @@
 /*******************************************************************************
- * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
+ * GOOGLE EARTH ENGINE FOR BEGINNERS
  * Module 2 · Script 03 — Geometries, Features and FeatureCollections
  * -----------------------------------------------------------------------------
  * VECTOR DATA in Earth Engine comes in three levels:
@@ -7,9 +7,6 @@
  *   ee.Geometry          → just a shape (point, line, polygon). No attributes.
  *   ee.Feature           → a geometry + a table row of properties (attributes).
  *   ee.FeatureCollection → many features together (like a shapefile).
- *
- * A landslide inventory is a good example: each landslide is a polygon (the
- * geometry) with attributes such as its type, its activity and when it moved.
  *
  * WHAT YOU WILL LEARN
  *   • Create points, lines, polygons, rectangles and buffers
@@ -25,38 +22,36 @@
 // PART 1 — Geometries
 // =============================================================================
 
-// A POINT: [longitude, latitude]. The centre of Limanowa.
-var limanowa = ee.Geometry.Point([20.4228, 49.7064]);
+// A POINT: [longitude, latitude]. Prashar Lake, Mandi district.
+var prashar = ee.Geometry.Point([77.1009, 31.7543]);
 
-// Another point: the village of Kłodne, hit by a landslide in June 2010.
-// (Village centre — approximate. The landslide itself is on the nearby slope.)
-var klodne = ee.Geometry.Point([20.5661, 49.6850]);
+// Another point: Mandi town.
+var mandiTown = ee.Geometry.Point([76.9318, 31.7084]);
 
 // A LINE STRING: a list of [lon, lat] points joined in order.
-// Here a straight line from Limanowa to Kłodne.
-var lineToKlodne = ee.Geometry.LineString([[20.4228, 49.7064], [20.5661, 49.6850]]);
+// Here a straight line from Mandi town to Prashar Lake.
+var lineToLake = ee.Geometry.LineString([[76.9318, 31.7084], [77.1009, 31.7543]]);
 
 // A POLYGON: a list of RINGS; each ring is a list of [lon, lat] corners.
 // That's why there are THREE levels of brackets: [ ring [ point [lon, lat] ] ].
 // The ring closes automatically (last point joins back to the first).
 var triangle = ee.Geometry.Polygon([
-  [[20.45, 49.64], [20.62, 49.64], [20.53, 49.76]] // three corners → a triangle
+  [[76.85, 31.60], [77.05, 31.60], [76.95, 31.75]] // three corners → a triangle
 ]);
 
 // A RECTANGLE is a quick way to make a box: [west, south, east, north].
-// THIS is the study area (AOI = "area of interest") used throughout the course:
-// the Beskid Wyspowy mountains and the Rożnów Reservoir, Polish Carpathians.
-var aoi = ee.Geometry.Rectangle([20.25, 49.60, 20.80, 49.85]);
+// THIS is the study area (AOI = "area of interest") used throughout the course.
+var aoi = ee.Geometry.Rectangle([76.75, 31.45, 77.25, 31.85]);
 
 // Zoom the map so the whole study area is visible (zoom level 10).
 Map.centerObject(aoi, 10);
 
 // Add each geometry to the map with its own colour.
-Map.addLayer(aoi, {color: 'yellow'}, 'Study area (AOI)');      // the rectangle
-Map.addLayer(triangle, {color: 'orange'}, 'Triangle');         // the polygon
-Map.addLayer(lineToKlodne, {color: 'cyan'}, 'Line to Kłodne'); // the line
-Map.addLayer(limanowa, {color: 'blue'}, 'Limanowa');           // point 1
-Map.addLayer(klodne, {color: 'red'}, 'Kłodne');                // point 2
+Map.addLayer(aoi, {color: 'yellow'}, 'Study area (AOI)');   // the rectangle
+Map.addLayer(triangle, {color: 'orange'}, 'Triangle');      // the polygon
+Map.addLayer(lineToLake, {color: 'cyan'}, 'Line to lake');  // the line
+Map.addLayer(prashar, {color: 'red'}, 'Prashar Lake');      // point 1
+Map.addLayer(mandiTown, {color: 'blue'}, 'Mandi town');     // point 2
 
 
 // =============================================================================
@@ -72,11 +67,11 @@ var aoiAreaKm2 = aoi.area(1).divide(1e6);
 print('AOI area (km²):', aoiAreaKm2);
 
 // .length() of a line, in metres; divide by 1000 for kilometres.
-print('Line length (km):', lineToKlodne.length(1).divide(1000));
+print('Line length (km):', lineToLake.length(1).divide(1000));
 
 // .distance() between two geometries, in metres.
-print('Limanowa → Kłodne straight-line distance (km):',
-      limanowa.distance(klodne, 1).divide(1000));
+print('Mandi → Prashar straight-line distance (km):',
+      mandiTown.distance(prashar, 1).divide(1000));
 
 // .perimeter() of a polygon, in metres.
 print('Triangle perimeter (km):', triangle.perimeter(1).divide(1000));
@@ -96,28 +91,28 @@ print('Rectangle corner coordinates:', aoi.coordinates());
 // =============================================================================
 
 // .buffer(distance) makes a zone around a geometry. Distance is in METRES.
-// A 1 km zone around Kłodne — e.g. "which houses and roads are near the landslide?"
-var klodneBuffer = klodne.buffer(1000);
+// A 2 km circle around Prashar Lake:
+var lakeBuffer = prashar.buffer(2000);
 
 // Show the buffer.
-Map.addLayer(klodneBuffer, {color: 'red'}, 'Kłodne 1 km buffer');
+Map.addLayer(lakeBuffer, {color: 'red'}, 'Prashar 2 km buffer');
 
 // .intersection() keeps only the part where two shapes overlap.
-var overlap = triangle.intersection(klodneBuffer, 1);
+var overlap = triangle.intersection(lakeBuffer, 1);
 
 // .union() merges two shapes into one.
-var merged = triangle.union(klodneBuffer, 1);
+var merged = triangle.union(lakeBuffer, 1);
 
 // Show both results (switched off — turn them on to look).
 Map.addLayer(overlap, {color: 'green'}, 'Triangle ∩ buffer', false);
 Map.addLayer(merged, {color: 'purple'}, 'Triangle ∪ buffer', false);
 
 // .contains() and .intersects() answer yes/no questions (ee.Boolean).
-print('Does the AOI contain Kłodne?', aoi.contains(klodne, 1));
-print('Does the triangle touch the Kłodne buffer?', triangle.intersects(klodneBuffer, 1));
+print('Does the AOI contain Prashar Lake?', aoi.contains(prashar, 1));
+print('Does the triangle touch the lake buffer?', triangle.intersects(lakeBuffer, 1));
 
 // .bounds() gives the bounding rectangle of any shape.
-print('Bounding box of the buffer:', klodneBuffer.bounds(1));
+print('Bounding box of the buffer:', lakeBuffer.bounds(1));
 
 
 // =============================================================================
@@ -125,24 +120,24 @@ print('Bounding box of the buffer:', klodneBuffer.bounds(1));
 // =============================================================================
 
 // ee.Feature(geometry, {properties}) attaches an attribute table row to a shape.
-var landslideFeature = ee.Feature(klodne, {
-  name: 'Kłodne landslide',    // a text property
-  type: 'landslide',           // another text property
-  year_activated: 2010         // a number property
+var lakeFeature = ee.Feature(prashar, {
+  name: 'Prashar Lake',   // a text property
+  type: 'lake',           // another text property
+  elevation_m: 2730       // a number property (approximate)
 });
 
 // Print the feature — expand it to see "geometry" and "properties".
-print('A feature:', landslideFeature);
+print('A feature:', lakeFeature);
 
 // .get('property') reads one property value.
-print('Feature name:', landslideFeature.get('name'));
+print('Feature name:', lakeFeature.get('name'));
 
 // .set('property', value) returns a NEW feature with an extra/changed property.
 // Earth Engine objects are never changed in place — always save the result!
-var landslideFeature2 = landslideFeature.set('monitored', 'yes');
+var lakeFeature2 = lakeFeature.set('visited', 'yes');
 
 // Print the property names of the new feature.
-print('Properties after .set():', landslideFeature2.propertyNames());
+print('Properties after .set():', lakeFeature2.propertyNames());
 
 
 // =============================================================================
@@ -150,14 +145,12 @@ print('Properties after .set():', landslideFeature2.propertyNames());
 // =============================================================================
 
 // ee.FeatureCollection([list of features]) groups features, like a shapefile.
-// Elevations are APPROXIMATE (town centres, summit, reservoir water level);
-// Script 06 reads exact values from a DEM.
 var sites = ee.FeatureCollection([
-  ee.Feature(ee.Geometry.Point([20.4228, 49.7064]), {name: 'Limanowa',          type: 'town',      elevation_m: 400}),
-  ee.Feature(ee.Geometry.Point([20.5661, 49.6850]), {name: 'Kłodne',            type: 'landslide', elevation_m: 500}),
-  ee.Feature(ee.Geometry.Point([20.7144, 49.7322]), {name: 'Rożnów Reservoir',  type: 'reservoir', elevation_m: 265}),
-  ee.Feature(ee.Geometry.Point([20.2767, 49.6552]), {name: 'Mogielica',         type: 'summit',    elevation_m: 1170}),
-  ee.Feature(ee.Geometry.Point([20.7022, 49.6203]), {name: 'Nowy Sącz',         type: 'town',      elevation_m: 290})
+  ee.Feature(ee.Geometry.Point([76.9318, 31.7084]), {name: 'Mandi town',   type: 'urban',     elevation_m: 760}),
+  ee.Feature(ee.Geometry.Point([77.1009, 31.7543]), {name: 'Prashar Lake', type: 'lake',      elevation_m: 2730}),
+  ee.Feature(ee.Geometry.Point([76.8336, 31.6336]), {name: 'Rewalsar',     type: 'lake',      elevation_m: 1360}),
+  ee.Feature(ee.Geometry.Point([77.0645, 31.6705]), {name: 'Pandoh Dam',   type: 'reservoir', elevation_m: 900}),
+  ee.Feature(ee.Geometry.Point([76.9000, 31.5900]), {name: 'Balh valley',  type: 'farmland',  elevation_m: 820})
 ]);
 
 // .size() counts the features.
@@ -176,7 +169,7 @@ print('Mean elevation of sites (m):', sites.aggregate_mean('elevation_m'));
 print('First site:', sites.first());
 
 // Add the collection to the map in magenta.
-Map.addLayer(sites, {color: 'magenta'}, 'Sites');
+Map.addLayer(sites, {color: 'magenta'}, 'Field sites');
 
 
 // =============================================================================
@@ -184,27 +177,27 @@ Map.addLayer(sites, {color: 'magenta'}, 'Sites');
 // =============================================================================
 
 // ee.Filter.eq(property, value) keeps features where property EQUALS value.
-var towns = sites.filter(ee.Filter.eq('type', 'town'));
-print('Only towns:', towns);
+var lakes = sites.filter(ee.Filter.eq('type', 'lake'));
+print('Only lakes:', lakes);
 
 // ee.Filter.gt = greater than; also .lt (less than), .gte, .lte, .neq (not equal).
-var highSites = sites.filter(ee.Filter.gt('elevation_m', 450));
-print('Sites above 450 m:', highSites.aggregate_array('name'));
+var highSites = sites.filter(ee.Filter.gt('elevation_m', 1000));
+print('Sites above 1000 m:', highSites.aggregate_array('name'));
 
 // ee.Filter.inList keeps features whose value is in a list of options.
-var hazardSites = sites.filter(ee.Filter.inList('type', ['landslide', 'reservoir']));
-print('Landslide and reservoir sites:', hazardSites.aggregate_array('name'));
+var waterSites = sites.filter(ee.Filter.inList('type', ['lake', 'reservoir']));
+print('Lakes and reservoirs:', waterSites.aggregate_array('name'));
 
 // ee.Filter.and() combines two filters (both must be true).
-var lowTowns = sites.filter(ee.Filter.and(
-  ee.Filter.eq('type', 'town'),          // must be a town...
-  ee.Filter.lt('elevation_m', 350)       // ...AND lower than 350 m
+var lowLakes = sites.filter(ee.Filter.and(
+  ee.Filter.eq('type', 'lake'),          // must be a lake...
+  ee.Filter.lt('elevation_m', 2000)      // ...AND lower than 2000 m
 ));
-print('Towns below 350 m:', lowTowns.aggregate_array('name'));
+print('Lakes below 2000 m:', lowLakes.aggregate_array('name'));
 
 // .filterBounds(geometry) keeps features that fall inside an area.
-var sitesNearKlodne = sites.filterBounds(klodneBuffer);
-print('Sites within 1 km of Kłodne:', sitesNearKlodne.aggregate_array('name'));
+var sitesNearLake = sites.filterBounds(lakeBuffer);
+print('Sites within 2 km of Prashar:', sitesNearLake.aggregate_array('name'));
 
 // .sort('property', false) orders features; false = descending (high → low).
 print('Sites from highest to lowest:', sites.sort('elevation_m', false).aggregate_array('name'));
@@ -244,43 +237,26 @@ var styledSites = sites.style({
 });
 
 // A styled collection is already an image, so we give NO visualisation options {}.
-Map.addLayer(styledSites, {}, 'Sites (styled)');
+Map.addLayer(styledSites, {}, 'Field sites (styled)');
 
 
 // =============================================================================
 // PART 9 — Administrative boundaries from the data catalog
 // =============================================================================
 
-// FAO GAUL = Global Administrative Unit Layers.
-// level0 = countries, level1 = provinces (in Poland: voivodeships),
-// level2 = the next level down (districts).
-var gaulCountries = ee.FeatureCollection('FAO/GAUL/2015/level0');
-var gaulProvinces = ee.FeatureCollection('FAO/GAUL/2015/level1');
+// FAO GAUL = Global Administrative Unit Layers (country / state / district).
+// level0 = countries, level1 = states/provinces, level2 = districts.
 var gaulDistricts = ee.FeatureCollection('FAO/GAUL/2015/level2');
 
-// The country outline: keep the feature whose ADM0_NAME is 'Poland'.
-var poland = gaulCountries.filter(ee.Filter.eq('ADM0_NAME', 'Poland'));
-
-// The voivodeship that CONTAINS Limanowa. filterBounds() with a point finds it
-// without needing to know how the name is spelled in the dataset.
-var voivodeship = gaulProvinces.filterBounds(limanowa);
-
-// Print its name as stored in GAUL (useful if you later filter by name).
-print('Voivodeship containing Limanowa:', voivodeship.aggregate_array('ADM1_NAME'));
-
-// ee.Feature( ... first() ) takes that single voivodeship as a Feature.
-var voivodeshipFeature = ee.Feature(voivodeship.first());
-
-// All districts of this voivodeship: same province code (ADM1_CODE).
-var districts = gaulDistricts.filter(ee.Filter.eq('ADM1_CODE', voivodeshipFeature.get('ADM1_CODE')));
+// Keep only the districts of Himachal Pradesh (property ADM1_NAME = state name).
+var hpDistricts = gaulDistricts.filter(ee.Filter.eq('ADM1_NAME', 'Himachal Pradesh'));
 
 // Count them and list their names (ADM2_NAME = district name).
-print('Districts in the voivodeship:', districts.size());
-print('District names:', districts.aggregate_array('ADM2_NAME'));
+print('Districts in Himachal Pradesh:', hpDistricts.size());
+print('District names:', hpDistricts.aggregate_array('ADM2_NAME'));
 
-// The single district that contains Limanowa.
-var limanowaDistrict = districts.filterBounds(limanowa);
-print('District containing Limanowa:', limanowaDistrict.aggregate_array('ADM2_NAME'));
+// Keep just one district: Mandi.
+var mandiDistrict = hpDistricts.filter(ee.Filter.eq('ADM2_NAME', 'Mandi'));
 
 // To draw ONLY the outlines (no fill), "paint" the boundaries onto an empty image:
 //   ee.Image()          → an empty image
@@ -290,56 +266,48 @@ print('District containing Limanowa:', limanowaDistrict.aggregate_array('ADM2_NA
 //      color: 1          → the pixel value to burn in
 //      width: 2          → line width in pixels
 var districtOutlines = ee.Image().byte().paint({
-  featureCollection: districts,   // the districts of the voivodeship
+  featureCollection: hpDistricts, // the HP districts
   color: 1,                       // burn value 1 into the pixels under the lines
   width: 2                        // 2-pixel-wide lines
 });
 
 // Show the outlines in black.
-Map.addLayer(districtOutlines, {palette: ['000000']}, 'District boundaries');
+Map.addLayer(districtOutlines, {palette: ['000000']}, 'HP district boundaries');
 
-// Show the Limanowa district in a red outline the same way.
-Map.addLayer(ee.Image().byte().paint({featureCollection: limanowaDistrict, color: 1, width: 3}),
-             {palette: ['ff0000']}, 'Limanowa district');
-
-// Show the national border in a thick dark-blue line (switched off).
-Map.addLayer(ee.Image().byte().paint({featureCollection: poland, color: 1, width: 3}),
-             {palette: ['08306b']}, 'Poland (GAUL)', false);
+// Show Mandi district in red outline the same way.
+Map.addLayer(ee.Image().byte().paint({featureCollection: mandiDistrict, color: 1, width: 3}),
+             {palette: ['ff0000']}, 'Mandi district');
 
 // Which districts touch our study area? filterBounds() answers that.
 print('Districts touching the AOI:',
       gaulDistricts.filterBounds(aoi).aggregate_array('ADM2_NAME'));
 
-// NOTE: GAUL boundaries are simplified and may not match Poland's official
-// boundaries. For published maps use the official State Register of Boundaries
-// (PRG) from GUGiK, uploaded as an asset (Script 06).
+// NOTE: Administrative boundary datasets are simplified and may not match your
+// country's official boundaries. For published maps, use official boundary
+// files (e.g. from your national survey department) uploaded as an asset.
 
 
 // =============================================================================
 // PART 10 — Drawing your own geometry (no code needed!)
 // =============================================================================
 
-// 1. Switch the basemap to "Satellite" (top-right of the map) and zoom in near
-//    Kłodne. Look for a bare, scarred patch on a forested or grassy slope.
-// 2. Hover over the map's top-left corner and pick the polygon tool.
-// 3. Draw around the patch. A variable called "geometry" appears in the IMPORTS
+// 1. Hover over the map's top-left corner and pick a drawing tool
+//    (point, line, polygon or rectangle).
+// 2. Draw on the map. A variable called "geometry" appears in the IMPORTS
 //    section at the very top of the script.
-// 4. Click the cog ⚙ next to it to rename it (e.g. "my_landslide"), change its
-//    colour, or turn it into a Feature / FeatureCollection with a property.
-// 5. You can then use it like any other variable, e.g.:
-//       print(geometry.area(1).divide(10000));   // area in hectares
+// 3. Click the cog ⚙ next to it to rename it, change its colour, or turn it into
+//    a Feature / FeatureCollection with a property (used for training data later).
+// 4. You can then use it like any other variable, e.g.:
+//       print(geometry.area(1).divide(1e6));
 //       Map.centerObject(geometry);
-// This is exactly how landslide inventories start: someone draws the outline
-// of each landslide on imagery or a LiDAR hillshade.
 
 
 /*******************************************************************************
  * TRY IT YOURSELF
  *   1. Add a new Feature to "sites" for a place you know, with name, type and
  *      elevation_m. Re-run and check the counts and the mean elevation.
- *   2. Make a 5 km buffer around Limanowa and find which sites fall inside.
- *   3. Change "limanowa" in PART 9 to a point in YOUR voivodeship and print
- *      the district names there.
- *   4. Use .map() on "districts" to add an "area_km2" property to each district,
+ *   2. Make a 5 km buffer around Mandi town and find which sites fall inside.
+ *   3. Filter the GAUL districts to YOUR state and print their names.
+ *   4. Use .map() on hpDistricts to add an "area_km2" property to each district,
  *      then sort them and print the 3 largest. (Hint: .limit(3) keeps the first 3.)
  ******************************************************************************/

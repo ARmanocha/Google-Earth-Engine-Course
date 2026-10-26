@@ -335,15 +335,15 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
     <!-- OVERVIEW -->
     <section class="view" id="view-overview" aria-labelledby="courseTitle">
       <header class="hero">
-        <p class="eyebrow">Course scripts · Google Earth Engine</p>
+        <p class="eyebrow">Course scripts · Google Earth Engine · Landslides in the Polish Carpathians</p>
         <h1 id="courseTitle">Google Earth Engine for Beginners</h1>
-        <p class="lede">Start with no programming experience and finish with a map of your own study area.
+        <p class="lede">Start with no programming experience and finish with landslide maps of your own study area.
           Every script explains each line of code in plain language. Copy a script, paste it into the
           Code Editor, press Run, and read along.</p>
         <dl class="facts">
           <div><dt>Lessons</dt><dd id="factLessons">15</dd></div>
           <div><dt>Lines of commented code</dt><dd id="factLines">—</dd></div>
-          <div><dt>Default study area</dt><dd class="place">Mandi, Himachal Pradesh<span class="coords">31.45–31.85 °N · 76.75–77.25 °E</span></dd></div>
+          <div><dt>Default study area</dt><dd class="place">Limanowa, Polish Carpathians<span class="coords">49.60–49.85 °N · 20.25–20.80 °E</span></dd></div>
         </dl>
         <div class="actions">
           <a class="btn primary" href="#setup">Start with the setup guide</a>
@@ -371,7 +371,7 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
             <li><code class="t-ee">ee.Image</code><span>Earth Engine object. Runs on Google's servers.</span></li>
             <li><code class="t-g">Map</code><span>Code Editor tools: <code>Map</code>, <code>print</code>, <code>ui</code>, <code>Export</code>.</span></li>
             <li><code class="t-s">'text'</code><span>Text, such as dataset IDs, band names and dates.</span></li>
-            <li><code class="t-n">4000</code><span>A number.</span></li>
+            <li><code class="t-n">1150</code><span>A number.</span></li>
           </ul>
         </div>
       </section>
@@ -388,14 +388,14 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
           <table>
             <thead><tr><th>Session</th><th>Lessons</th><th>By the end you can…</th></tr></thead>
             <tbody>
-              <tr><td>1</td><td>00, 01</td><td>Sign in and put a satellite image on the map</td></tr>
+              <tr><td>1</td><td>00, 01</td><td>Sign in and put a DEM and a satellite image on the map</td></tr>
               <tr><td>2</td><td>02, 03</td><td>Read and write basic code; create and filter vector data</td></tr>
-              <tr><td>3</td><td>04, 05, 06</td><td>Find, filter and display any dataset; upload and export data</td></tr>
-              <tr><td>4</td><td>07, 08</td><td>Make cloud-free composites and spectral indices</td></tr>
-              <tr><td>5</td><td>09, 10</td><td>Write functions, map over collections and calculate statistics</td></tr>
-              <tr><td>6</td><td>11</td><td>Build time series, charts and trend maps</td></tr>
-              <tr><td>7</td><td>12, 13</td><td>Classify land cover, check accuracy and detect change</td></tr>
-              <tr><td>8</td><td>14</td><td>Map your own study area and present it</td></tr>
+              <tr><td>3</td><td>04, 05, 06</td><td>Find and filter any dataset; upload a landslide inventory and export results</td></tr>
+              <tr><td>4</td><td>07, 08</td><td>Make cloud-free composites, indices and a bare-ground-on-slopes map</td></tr>
+              <tr><td>5</td><td>09, 10</td><td>Write functions and measure steep land and land cover per district</td></tr>
+              <tr><td>6</td><td>11</td><td>Chart the rain before a landslide and map NDVI trends</td></tr>
+              <tr><td>7</td><td>12, 13</td><td>Classify land cover, check accuracy and find landslide candidates</td></tr>
+              <tr><td>8</td><td>14</td><td>Make landslide maps of your own study area and present them</td></tr>
             </tbody>
           </table>
         </div>
@@ -409,8 +409,9 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
             <thead><tr><th>Message</th><th>Usual cause</th><th>Fix</th></tr></thead>
             <tbody>
               <tr><td><code>… is not defined</code></td><td>A typo in a variable name, or the variable is created further down</td><td>Check spelling and capital letters; create the variable before using it</td></tr>
-              <tr><td><code>Unexpected token</code></td><td>A missing comma, bracket or quote</td><td>Count <code>( ) [ ] { }</code> and check commas between items</td></tr>
-              <tr><td><code>Pattern 'B8' did not match any bands</code></td><td>The band name is wrong for this dataset (Landsat uses <code>SR_B5</code>)</td><td>Print the image and read its band names</td></tr>
+              <tr><td><code>Unexpected token</code></td><td>A missing comma, bracket or quote, or a decimal comma (<code>20,42</code>)</td><td>Count <code>( ) [ ] { }</code>, check commas between items, and use a dot for decimals</td></tr>
+              <tr><td>Point appears in Saudi Arabia</td><td>Latitude and longitude are swapped</td><td>Write <code>[longitude, latitude]</code>, e.g. <code>[20.42, 49.71]</code></td></tr>
+              <tr><td><code>Pattern 'B8' did not match any bands</code></td><td>The band name is wrong for this dataset (Landsat uses <code>SR_B4</code>, <code>SR_B5</code> …)</td><td>Print the image and read its band names</td></tr>
               <tr><td>Empty results or <code>Error in map</code></td><td>The filters removed every image</td><td>Print <code>.size()</code> after each filter</td></tr>
               <tr><td><code>Too many pixels in the region</code></td><td>The area is too big for the chosen <code>scale</code></td><td>Add <code>maxPixels: 1e13</code> or use a coarser <code>scale</code></td></tr>
               <tr><td><code>Computation timed out</code></td><td>The request is too heavy to show on screen</td><td>Use an Export, a coarser <code>scale</code> or <code>tileScale: 4</code></td></tr>
@@ -488,19 +489,19 @@ footer.foot { color: var(--muted); font-size: .875rem; border-top: 1px solid var
       </div>
       <header class="script-head">
         <h2 id="dataTitle">Field sites for the upload exercise</h2>
-        <p class="summary">Ten example points around Mandi for lesson 06. Five are named places; the five marked <code>to_check</code> are for you to identify with the Inspector.</p>
+        <p class="summary">Ten example points around Limanowa for lesson 06. Five are named places (approximate centres); the five marked <code>to_check</code> are for you to identify with the Inspector.</p>
       </header>
       <section class="section">
         <h3>Make the file</h3>
         <ol class="steps">
           <li><strong>Copy</strong><span class="muted">Press <em>Copy CSV</em> above.</span></li>
-          <li><strong>Save</strong><span class="muted">Paste into a plain-text editor (Notepad, TextEdit in plain-text mode) and save as <code>field_sites_mandi.csv</code>.</span></li>
+          <li><strong>Save</strong><span class="muted">Paste into a plain-text editor (Notepad, TextEdit in plain-text mode) and save as <code>field_sites_limanowa.csv</code>.</span></li>
           <li><strong>Upload</strong><span class="muted">In the Code Editor: Assets → NEW → CSV file. Check that X is <code>longitude</code> and Y is <code>latitude</code>.</span></li>
           <li><strong>Use it</strong><span class="muted">In lesson 06, put in your project ID and set <code>USE_MY_FIELD_SITES = true</code>.</span></li>
         </ol>
       </section>
       <figure class="code-panel data-block">
-        <figcaption><strong>field_sites_mandi.csv</strong><span id="csvRows"></span></figcaption>
+        <figcaption><strong>field_sites_limanowa.csv</strong><span id="csvRows"></span></figcaption>
         <pre class="code" id="csvBlock"><code></code></pre>
       </figure>
       <nav class="pager" id="pagerData" aria-label="Next and previous lesson"></nav>

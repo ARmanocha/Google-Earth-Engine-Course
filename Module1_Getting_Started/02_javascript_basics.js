@@ -1,5 +1,5 @@
 /*******************************************************************************
- * GOOGLE EARTH ENGINE FOR BEGINNERS
+ * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 1 · Script 02 — The JavaScript you need for Earth Engine
  * -----------------------------------------------------------------------------
  * WHAT YOU WILL LEARN
@@ -32,32 +32,32 @@
 
 // "var" creates a variable. The name goes on the left of =, the value on the right.
 // Variable names: no spaces, cannot start with a number, and are CASE-SENSITIVE
-// (myCity and mycity are two different variables).
+// (myTown and mytown are two different variables).
 
 // A STRING is text. It must be inside quotes.
-var cityName = 'Mandi';
+var townName = 'Limanowa';
 
-// A NUMBER is written without quotes. Decimals use a dot.
-var latitude = 31.71;
+// A NUMBER is written without quotes. Decimals use a dot (not a comma!).
+var latitude = 49.71;
 
 // Another number (whole numbers and decimals are the same type in JavaScript).
-var elevationMetres = 760;
+var elevationMetres = 400;
 
 // A BOOLEAN is either true or false (no quotes).
-var isHillStation = true;
+var isInCarpathians = true;
 
 // Print each variable. Text before the comma is just a label for the Console.
-print('City name:', cityName);
+print('Town name:', townName);
 print('Latitude:', latitude);
 print('Elevation (m):', elevationMetres);
-print('Is it a hill station?', isHillStation);
+print('Is it in the Carpathians?', isInCarpathians);
 
 // Arithmetic with numbers: + - * /  and brackets ( ) like in maths.
 var elevationKm = elevationMetres / 1000;
 print('Elevation in km:', elevationKm);
 
 // The + sign JOINS strings together (called "concatenation").
-var sentence = cityName + ' is at ' + elevationMetres + ' m above sea level.';
+var sentence = townName + ' is at about ' + elevationMetres + ' m above sea level.';
 print(sentence);
 
 
@@ -79,8 +79,8 @@ print('First band:', bandNames[0]);
 print('Number of bands in the list:', bandNames.length);
 
 // A list of numbers — e.g. coordinates [longitude, latitude].
-var mandiCoords = [76.93, 31.71];
-print('Mandi coordinates:', mandiCoords);
+var limanowaCoords = [20.42, 49.71];
+print('Limanowa coordinates:', limanowaCoords);
 
 
 // =============================================================================
@@ -89,21 +89,21 @@ print('Mandi coordinates:', mandiCoords);
 
 // A dictionary stores KEY: VALUE pairs inside curly brackets { }.
 // You have already used one for visualisation: {min: 0, max: 3000}.
-var cityInfo = {
-  name: 'Mandi',          // key "name" has the value 'Mandi'
-  state: 'Himachal Pradesh', // key "state"
-  lon: 76.93,             // key "lon"
-  lat: 31.71              // key "lat"
+var townInfo = {
+  name: 'Limanowa',            // key "name" has the value 'Limanowa'
+  voivodeship: 'Małopolskie',  // key "voivodeship" (the Polish region)
+  lon: 20.42,                  // key "lon"
+  lat: 49.71                   // key "lat"
 };
 
 // Print the whole dictionary.
-print('City information:', cityInfo);
+print('Town information:', townInfo);
 
 // Read one value with a dot and the key name...
-print('State:', cityInfo.state);
+print('Voivodeship:', townInfo.voivodeship);
 
 // ...or with square brackets and the key in quotes (both do the same thing).
-print('Longitude:', cityInfo['lon']);
+print('Longitude:', townInfo['lon']);
 
 
 // =============================================================================
@@ -115,16 +115,20 @@ print('Longitude:', cityInfo['lon']);
 //   • inputs (called "parameters") go inside ( )
 //   • the code goes inside { }
 //   • "return" sends the answer back
-function celsiusToFahrenheit(celsius) {
-  // Multiply by 9, divide by 5, add 32 — and send the result back.
-  return celsius * 9 / 5 + 32;
+// Slope steepness is given either in PERCENT (rise ÷ run × 100, as on road signs)
+// or in DEGREES (as in Earth Engine). This function converts percent to degrees.
+function slopePercentToDegrees(percent) {
+  // Math.atan() gives the angle (in radians) whose tangent is rise ÷ run.
+  // Multiplying by 180 / Math.PI converts radians to degrees.
+  return Math.atan(percent / 100) * 180 / Math.PI;
 }
 
 // "Call" the function by writing its name and giving it an input in ( ).
-print('25 °C in Fahrenheit:', celsiusToFahrenheit(25));
+// A 100 % slope (1 m up for every 1 m along) is 45 degrees.
+print('100 % slope in degrees:', slopePercentToDegrees(100));
 
 // Call it again with a different input — that is the point of a function.
-print('0 °C in Fahrenheit:', celsiusToFahrenheit(0));
+print('25 % slope in degrees:', slopePercentToDegrees(25));
 
 // Functions can also be stored in a variable. This does exactly the same thing.
 // You will see BOTH styles in Earth Engine scripts.
@@ -143,12 +147,12 @@ print('5 km² in hectares:', squareKmToHectares(5));
 
 // An if-statement runs code only when a condition is true.
 // Comparison signs: >  <  >=  <=  === (equal)  !== (not equal)
-if (elevationMetres > 1000) {
+if (elevationMetres > 500) {
   // Runs only if the condition is true.
-  print(cityName + ' is above 1000 m.');
+  print(townName + ' is above 500 m.');
 } else {
   // Runs only if the condition is false.
-  print(cityName + ' is below 1000 m.');
+  print(townName + ' is below 500 m.');
 }
 
 // A for-loop repeats code. Read it as:
@@ -241,13 +245,15 @@ print('Dictionary keys:', eeDict.keys());
 
 // ---- ee.Date: server-side dates --------------------------------------------
 // Create a date from text in the format 'YYYY-MM-DD'.
-var date = ee.Date('2024-06-15');
+// 1 June 2010 is the day the Kłodne landslide near Limanowa started to move.
+var date = ee.Date('2010-06-01');
 
 // Print the date (Earth Engine stores it as milliseconds since 1 Jan 1970).
 print('A date:', date);
 
 // .advance(amount, unit) moves the date forward. Units: 'day','week','month','year'.
-print('One month later:', date.advance(1, 'month'));
+// A negative amount moves it backwards: 30 days BEFORE the landslide.
+print('30 days earlier:', date.advance(-30, 'day'));
 
 // .get('year') extracts a part of the date ('year', 'month', 'day').
 print('Year of the date:', date.get('year'));
@@ -286,18 +292,23 @@ serverNumber.multiply(100).evaluate(function(result) {
 // 1. Wrong capitalisation:  ee.image(...)   ✗     ee.Image(...)   ✓
 // 2. Missing comma between items:  {min: 0 max: 1}  ✗   {min: 0, max: 1}  ✓
 // 3. Missing quotes around text:   ee.Image(USGS/SRTMGL1_003) ✗
-// 4. Latitude first:  ee.Geometry.Point([31.71, 76.93])  ✗  (it's [lon, lat])
-// 5. Using + on server objects:   ee.Number(5) + 1  ✗   ee.Number(5).add(1) ✓
-// 6. Unclosed brackets ( [ {  — the editor shows a red mark; count them!
-// 7. Forgetting "var" the first time you create a variable.
+// 4. Latitude first:  ee.Geometry.Point([49.71, 20.42])  ✗  (it's [lon, lat])
+//    (In Poland latitude ≈ 49–55 and longitude ≈ 14–24, so swapped numbers put
+//     your point in Saudi Arabia or the Arabian Sea!)
+// 5. Decimal comma:  20,42  ✗   20.42  ✓   (JavaScript always uses a dot)
+// 6. Using + on server objects:   ee.Number(5) + 1  ✗   ee.Number(5).add(1) ✓
+// 7. Unclosed brackets ( [ {  — the editor shows a red mark; count them!
+// 8. Forgetting "var" the first time you create a variable.
 
 
 /*******************************************************************************
  * TRY IT YOURSELF
- *   1. Make a variable with your own city's name and elevation, and print a
- *      sentence like "Shimla is at 2276 m".
- *   2. Write a function kmToMiles(km) that returns km * 0.621. Test it.
+ *   1. Make a variable with your own town's name and elevation, and print a
+ *      sentence like "Kraków is at about 219 m above sea level."
+ *   2. Write a function degreesToPercent(deg) that does the opposite of
+ *      slopePercentToDegrees. (Hint: Math.tan(deg * Math.PI / 180) * 100.)
+ *      What is a 30° slope in percent?
  *   3. Make an ee.List of the months 1 to 12 with ee.List.sequence(1, 12) and
  *      use .map() to multiply each month by 10.
- *   4. Create ee.Date('2025-01-01') and print the date 100 days later.
+ *   4. Create ee.Date('2010-05-01') and print the date 45 days later.
  ******************************************************************************/

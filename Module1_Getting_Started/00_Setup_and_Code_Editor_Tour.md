@@ -1,5 +1,7 @@
 # Module 1 · Part 0 — Setting up Google Earth Engine
 
+**Author:** AKSHAY RAJ MANOCHA, University of Silesia, Katowice, Poland
+
 This handout walks you through everything you need **before** you write your first line of code.
 No programming knowledge is needed.
 

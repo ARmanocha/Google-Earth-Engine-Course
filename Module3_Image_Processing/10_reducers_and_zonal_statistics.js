@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 3 · Script 10 — Reducers and zonal statistics
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * A REDUCER turns MANY values into FEWER values (mean, sum, min, max, count …).
  * Where you apply it decides what you get:

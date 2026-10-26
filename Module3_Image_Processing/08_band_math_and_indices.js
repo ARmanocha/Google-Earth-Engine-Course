@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 3 · Script 08 — Band math and spectral indices
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * A SPECTRAL INDEX combines two or more bands into one number that highlights
  * something: vegetation, water, buildings, bare soil, burnt land, snow …

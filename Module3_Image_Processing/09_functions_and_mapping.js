@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 3 · Script 09 — Functions and mapping over collections
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * In Earth Engine we almost never use for-loops on images. Instead we:
  *   1. write a FUNCTION that does the job for ONE item (one image / one feature);

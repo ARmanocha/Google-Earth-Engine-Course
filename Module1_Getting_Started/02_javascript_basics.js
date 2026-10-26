@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 1 · Script 02 — The JavaScript you need for Earth Engine
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * WHAT YOU WILL LEARN
  *   • Comments, variables and the basic types of data (numbers, text, true/false)

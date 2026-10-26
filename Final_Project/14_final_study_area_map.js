@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * FINAL PROJECT · Script 14 — Landslide maps of YOUR study area
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * This template brings the whole course together. Change the SETTINGS in
  * PART 0 to your own study area and years, press Run, and you get:

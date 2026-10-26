@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 2 · Script 06 — Using your own data (assets) and exporting results
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * WHAT YOU WILL LEARN
  *   • How to upload a SHAPEFILE, a CSV of points and a GeoTIFF raster as ASSETS

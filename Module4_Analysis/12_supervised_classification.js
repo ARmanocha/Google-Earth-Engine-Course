@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 4 · Script 12 — Supervised classification and accuracy assessment
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * SUPERVISED CLASSIFICATION = teach the computer what each land-cover class
  * looks like using EXAMPLES (training data), then let it label every pixel.

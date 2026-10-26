@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 2 · Script 05 — A tour of the Earth Engine Data Catalog
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * The catalog (https://developers.google.com/earth-engine/datasets) has 1000+
  * datasets. This script loads the most useful ones for landslide studies in

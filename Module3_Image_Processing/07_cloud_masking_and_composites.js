@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 3 · Script 07 — Cloud masking and composites (median, seasonal, annual)
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * THE PROBLEM: Optical satellites cannot see through clouds. In Poland the sky
  * is cloudy on most days, especially from autumn to spring, and in winter snow

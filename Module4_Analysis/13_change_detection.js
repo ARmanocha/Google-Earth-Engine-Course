@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 4 · Script 13 — Change detection
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * CHANGE DETECTION compares the same place at two (or more) dates.
  * A fresh landslide removes vegetation and exposes soil, so it shows up as a

@@ -1,6 +1,8 @@
 /*******************************************************************************
  * GOOGLE EARTH ENGINE FOR BEGINNERS — Landslides in the Polish Carpathians
  * Module 4 · Script 11 — Time-series analysis and charts
+ * Author: AKSHAY RAJ MANOCHA
+ *         University of Silesia, Katowice, Poland
  * -----------------------------------------------------------------------------
  * A TIME SERIES follows how a value (NDVI, rainfall, temperature …) changes
  * over time at a place. Earth Engine's archive goes back decades, so you can

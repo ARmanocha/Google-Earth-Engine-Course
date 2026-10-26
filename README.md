@@ -6,6 +6,10 @@ complete remote-sensing workflows, ending with a map of their own study area.
 Every script is written for the **GEE Code Editor (JavaScript)**. **Every line of code is
 explained** in a comment, and each script ends with *TRY IT YOURSELF* exercises.
 
+**Another edition:** [`Poland_Landslides/`](Poland_Landslides/README.md) is the same course
+rebuilt around landslides in the Polish Carpathians (Limanowa and the Rożnów Reservoir), with
+ERA5-Land rainfall, a 2010 landslide event, and a susceptibility map in the final project.
+
 ---
 
 ## Folder contents

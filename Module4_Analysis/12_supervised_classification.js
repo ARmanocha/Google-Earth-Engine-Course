@@ -82,7 +82,9 @@ var ndbi = s2.normalizedDifference(['B11', 'B8']).rename('NDBI');   // built-up
 var srtm = ee.Image('USGS/SRTMGL1_003');
 // Elevation ÷ 4000 and slope ÷ 90 put them on a ~0–1 scale like the other bands.
 // (Similar ranges matter for SVM; Random Forest and CART don't mind.)
-var elevation = srtm.divide(4000).rename('elev');
+// .toFloat() first: SRTM stores whole numbers, and whole ÷ whole drops the decimals
+// (760 ÷ 4000 would give 0 instead of 0.19).
+var elevation = srtm.toFloat().divide(4000).rename('elev');
 var slope = ee.Terrain.slope(srtm).divide(90).rename('slope');
 
 // Stack everything into one image of "predictors".

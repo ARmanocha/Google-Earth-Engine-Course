@@ -142,7 +142,7 @@ var predictors = composite
   .addBands(ndvi)                                 // + NDVI
   .addBands(ndwi)                                 // + NDWI
   .addBands(ndbi)                                 // + NDBI
-  .addBands(dem.divide(4000).rename('elev'))      // + elevation ÷ 4000
+  .addBands(dem.toFloat().divide(4000).rename('elev')) // + elevation ÷ 4000 (as decimals)
   .addBands(slope.divide(90).rename('slope'));    // + slope ÷ 90
 
 // The names of all predictor bands (the classifier needs this list).
